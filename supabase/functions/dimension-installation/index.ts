@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { checkRateLimit, getClientIp } from "../_shared/rate-limit.ts";
 import { estimateIrradiance } from "../_shared/irradiance.ts";
+import { guardLeadMutation } from "../_shared/lead-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -187,6 +188,15 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     const leadId: string | undefined = body?.leadId;
+
+    // Guard: public callers can only mutate freshly-created leads
+    if (leadId) {
+      const guard = await guardLeadMutation(supabase, req, leadId);
+      if (!guard.allowed) {
+        return json({ success: false, error: "forbidden", reason: guard.reason }, 403);
+      }
+    }
+
     const lat = Number(body?.lat ?? 0), lng = Number(body?.lng ?? 0);
     const zone = lat && lng ? estimateIrradiance(lat, lng) : { irradiance: 1650, name: "default" };
     const prodSpec = zone.irradiance;
