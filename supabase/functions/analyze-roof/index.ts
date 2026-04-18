@@ -291,8 +291,8 @@ Deno.serve(async (req) => {
         const irradiance = city === "Essaouira" ? 1750 : city === "Agadir" ? 1700 : 1650;
         const newKwc = maxKwcBySurface;
         const newProduction = Math.round(newKwc * irradiance);
-        const newBudgetMin = Math.round(newKwc * 14000);
-        const newBudgetMax = Math.round(newKwc * 18000);
+        const newBudgetMin = Math.round(newKwc * 6500);
+        const newBudgetMax = Math.round(newKwc * 7500);
         const newRoi = newProduction > 0
           ? Math.round((newBudgetMin / (newProduction * 1.2)) * 10) / 10
           : null;

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useSignedUrls } from "@/hooks/useSignedUrls";
 import { PhotoBlock } from "./PhotoBlock";
+import { formatKwc, formatKwh, formatDh, formatYears } from "@/lib/formatNumber";
 import {
   Select,
   SelectContent,
@@ -214,21 +215,21 @@ export const AdminLeadDetail = () => {
               <CardTitle className="text-base">Estimation calculée</CardTitle>
             </CardHeader>
             <CardContent className="text-sm">
-              <Field label="Puissance recommandée" value={lead.recommended_kwc ? `${lead.recommended_kwc} kWc` : null} />
+              <Field label="Puissance recommandée" value={lead.recommended_kwc ? formatKwc(lead.recommended_kwc) : null} />
               <Field
                 label="Production estimée"
-                value={lead.estimated_production_kwh ? `${lead.estimated_production_kwh.toLocaleString()} kWh/an` : null}
+                value={lead.estimated_production_kwh ? `${formatKwh(lead.estimated_production_kwh)}/an` : null}
               />
               <Field
                 label="Budget"
                 value={
                   lead.estimated_budget_min && lead.estimated_budget_max
-                    ? `${lead.estimated_budget_min.toLocaleString()} – ${lead.estimated_budget_max.toLocaleString()} MAD`
+                    ? `${formatDh(lead.estimated_budget_min)} – ${formatDh(lead.estimated_budget_max)}`
                     : null
                 }
               />
-              <Field label="ROI" value={lead.estimated_roi_years ? `${lead.estimated_roi_years} ans` : null} />
-              <Field label="Conso annuelle" value={lead.consumption_kwh_year ? `${lead.consumption_kwh_year.toLocaleString()} kWh` : null} />
+              <Field label="ROI" value={lead.estimated_roi_years ? formatYears(lead.estimated_roi_years) : null} />
+              <Field label="Conso annuelle" value={lead.consumption_kwh_year ? formatKwh(lead.consumption_kwh_year) : null} />
               {roof?.sizing_adjustment?.applied && (
                 <div className="mt-3 p-3 rounded-md border border-border bg-muted/40 text-xs space-y-1">
                   <p className="font-medium text-foreground">
@@ -291,7 +292,7 @@ export const AdminLeadDetail = () => {
                 {Array.isArray(invoice.monthly_kwh) && (
                   <Field label="Conso mensuelles (kWh)" value={invoice.monthly_kwh.join(" · ")} />
                 )}
-                {invoice.annual_kwh && <Field label="Conso annuelle" value={`${invoice.annual_kwh.toLocaleString()} kWh`} />}
+                {invoice.annual_kwh && <Field label="Conso annuelle" value={formatKwh(invoice.annual_kwh)} />}
                 {invoice.notes && <Field label="Notes" value={invoice.notes} />}
               </div>
             ) : (

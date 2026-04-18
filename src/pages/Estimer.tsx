@@ -11,12 +11,14 @@ import { CalculationOverlay } from "@/components/estimation/CalculationOverlay";
 import { ResultDisplay } from "@/components/estimation/ResultDisplay";
 import { useEstimationStore } from "@/stores/estimationStore";
 import { supabase } from "@/integrations/supabase/client";
+import { getErrorMapping } from "@/lib/validationErrors";
 
 const Estimer = () => {
   const navigate = useNavigate();
   const {
     currentStep,
     next,
+    setStep,
     consumption,
     location,
     housing,
@@ -53,8 +55,8 @@ const Estimer = () => {
     const irradiance = location.city === "Essaouira" ? 1750 : location.city === "Agadir" ? 1700 : 1650;
     const recommendedKwc = Math.round((annual / irradiance) * 10) / 10;
     const annualProduction = Math.round(recommendedKwc * irradiance);
-    const budgetMin = Math.round(recommendedKwc * 14000);
-    const budgetMax = Math.round(recommendedKwc * 18000);
+    const budgetMin = Math.round(recommendedKwc * 6500);
+    const budgetMax = Math.round(recommendedKwc * 7500);
     const roiYears =
       annualProduction > 0
         ? Math.round((budgetMin / (annualProduction * 1.2)) * 10) / 10
@@ -109,14 +111,18 @@ const Estimer = () => {
       if (error) throw error;
       const result = rpcData as { success?: boolean; id?: string; error?: string } | null;
       if (!result?.success) {
-        toast.error(`Soumission refusée : ${result?.error ?? "données invalides"}`);
+        const code = result?.error ?? "";
+        const mapping = getErrorMapping(code);
+        toast.error(mapping.message, { duration: 8000 });
+        if (mapping.returnToStep && mapping.returnToStep !== currentStep) {
+          setStep(mapping.returnToStep);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
         setSubmitting(false);
         return;
       }
       const newLeadId = result.id;
       if (newLeadId) {
-        // Server-side trigger (pg_net) handles roof analysis automatically.
-        // No more fire-and-forget here — fixes the "user closes tab" issue.
         const idStr = typeof newLeadId === "string"
           ? newLeadId
           : (newLeadId as { id?: string })?.id;
