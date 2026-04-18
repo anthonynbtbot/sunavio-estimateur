@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
-import { ArrowLeft, ExternalLink, Loader2, Save } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, RefreshCw, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { useSignedUrls } from "@/hooks/useSignedUrls";
+import { PhotoBlock } from "./PhotoBlock";
 import {
   Select,
   SelectContent,
@@ -75,6 +77,17 @@ export const AdminLeadDetail = () => {
   const [status, setStatus] = useState("new");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [reanalyzing, setReanalyzing] = useState(false);
+
+  const allPaths = useMemo(
+    () =>
+      [lead?.invoice_photo_url, ...(lead?.roof_photos_urls ?? [])].filter(
+        (p): p is string => !!p,
+      ),
+    [lead?.invoice_photo_url, lead?.roof_photos_urls],
+  );
+  const { urls, loading: urlsLoading } = useSignedUrls(allPaths);
+  const getUrl = (p?: string | null) => (p ? urls[p] : undefined);
 
   useEffect(() => {
     if (!id) return;
@@ -134,6 +147,37 @@ export const AdminLeadDetail = () => {
   const roof = lead.roof_ai_analysis;
   const invoice = lead.invoice_ai_extracted;
   const dirty = status !== lead.status || (notes || "") !== (lead.notes ?? "");
+
+  const ageMs = Date.now() - new Date(lead.created_at).getTime();
+  const olderThan2min = ageMs > 2 * 60 * 1000;
+  const hasEnoughPhotos = (lead.roof_photos_urls?.length ?? 0) >= 2;
+  const analysisFailedOrMissing = !roof || roof?.success === false;
+  const canRelaunch = analysisFailedOrMissing && olderThan2min && hasEnoughPhotos;
+
+  const handleRelaunchRoof = async () => {
+    if (!lead || reanalyzing) return;
+    setReanalyzing(true);
+    const { data, error } = await supabase.functions.invoke("analyze-roof", {
+      body: { leadId: lead.id, photoPaths: lead.roof_photos_urls },
+    });
+    setReanalyzing(false);
+    if (error) {
+      toast.error(error.message ?? "Échec de la relance");
+      return;
+    }
+    if (data?.success === false) {
+      toast.error(`Analyse échouée : ${data.reason ?? "raison inconnue"}`);
+      return;
+    }
+    toast.success("Analyse relancée avec succès");
+    const { data: refreshed } = await supabase
+      .from("leads")
+      .select("*")
+      .eq("id", lead.id)
+      .maybeSingle();
+    if (refreshed) setLead(refreshed as Lead);
+  };
+
 
   return (
     <main className="min-h-screen bg-background pb-12">
@@ -254,14 +298,15 @@ export const AdminLeadDetail = () => {
               <p className="text-sm text-muted-foreground">Aucune analyse disponible.</p>
             )}
             {lead.invoice_photo_url && (
-              <a
-                href={lead.invoice_photo_url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary text-sm inline-flex items-center gap-1 mt-3"
-              >
-                Ouvrir la facture <ExternalLink className="h-3 w-3" />
-              </a>
+              <div className="mt-4 max-w-sm">
+                <PhotoBlock
+                  path={lead.invoice_photo_url}
+                  url={getUrl(lead.invoice_photo_url)}
+                  loading={urlsLoading}
+                  label="Facture ONEE"
+                  allowDownload
+                />
+              </div>
             )}
           </CardContent>
         </Card>
@@ -335,16 +380,39 @@ export const AdminLeadDetail = () => {
 
             {Array.isArray(lead.roof_photos_urls) && lead.roof_photos_urls.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-3">
-                {lead.roof_photos_urls.map((u) => (
-                  <a key={u} href={u} target="_blank" rel="noreferrer" className="block">
-                    <img
-                      src={u}
-                      alt="Photo de toiture du lead"
-                      loading="lazy"
-                      className="w-full h-28 object-cover rounded-md border border-border"
-                    />
-                  </a>
+                {lead.roof_photos_urls.map((p, i) => (
+                  <PhotoBlock
+                    key={p}
+                    path={p}
+                    url={getUrl(p)}
+                    loading={urlsLoading}
+                    label={`Toit ${i + 1}`}
+                  />
                 ))}
+              </div>
+            )}
+
+            {canRelaunch && (
+              <div className="pt-3 border-t border-border mt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRelaunchRoof}
+                  disabled={reanalyzing}
+                  className="border-primary/40 text-primary hover:bg-primary/5"
+                >
+                  {reanalyzing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Analyse en cours…
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Relancer l'analyse IA du toit
+                    </>
+                  )}
+                </Button>
               </div>
             )}
           </CardContent>
