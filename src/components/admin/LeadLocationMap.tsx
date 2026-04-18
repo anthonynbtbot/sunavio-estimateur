@@ -15,13 +15,25 @@ interface Props {
   address: string | null;
 }
 
-export const LeadLocationMap = ({ lat, lng, address }: Props) => {
+export const LeadLocationMap = (props: Props) => {
   const { apiKey, loading: keyLoading } = useGoogleMapsKey();
+  if (keyLoading || !apiKey) {
+    return (
+      <div className="h-[400px] bg-card border border-border flex items-center justify-center">
+        <Loader2 className="size-6 text-muted-foreground animate-spin" />
+      </div>
+    );
+  }
+  return <LeadLocationMapInner {...props} apiKey={apiKey} />;
+};
+
+const LeadLocationMapInner = ({ lat, lng, address, apiKey }: Props & { apiKey: string }) => {
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: apiKey ?? "",
+    googleMapsApiKey: apiKey,
     libraries: MAP_LIBRARIES,
     id: "google-map-script",
   });
+  const keyLoading = false;
   const [satellite, setSatellite] = useState(false);
 
   const copy = useCallback((text: string, label: string) => {
