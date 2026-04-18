@@ -11,6 +11,7 @@ import { CalculationOverlay } from "@/components/estimation/CalculationOverlay";
 import { ResultDisplay } from "@/components/estimation/ResultDisplay";
 import { useEstimationStore } from "@/stores/estimationStore";
 import { supabase } from "@/integrations/supabase/client";
+import { getErrorMapping } from "@/lib/validationErrors";
 
 const Estimer = () => {
   const navigate = useNavigate();
@@ -53,8 +54,8 @@ const Estimer = () => {
     const irradiance = location.city === "Essaouira" ? 1750 : location.city === "Agadir" ? 1700 : 1650;
     const recommendedKwc = Math.round((annual / irradiance) * 10) / 10;
     const annualProduction = Math.round(recommendedKwc * irradiance);
-    const budgetMin = Math.round(recommendedKwc * 14000);
-    const budgetMax = Math.round(recommendedKwc * 18000);
+    const budgetMin = Math.round(recommendedKwc * 6500);
+    const budgetMax = Math.round(recommendedKwc * 7500);
     const roiYears =
       annualProduction > 0
         ? Math.round((budgetMin / (annualProduction * 1.2)) * 10) / 10
