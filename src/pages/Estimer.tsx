@@ -109,7 +109,18 @@ const Estimer = () => {
         .single();
 
       if (error) throw error;
-      if (data) setLeadId(data.id);
+      if (data) {
+        setLeadId(data.id);
+        // Fire-and-forget: kick off roof photo analysis in the background.
+        // The user does not wait — results are persisted on the lead for admin review.
+        if (photos.roofUrls.length > 0) {
+          supabase.functions
+            .invoke("analyze-roof", {
+              body: { leadId: data.id, photoUrls: photos.roofUrls },
+            })
+            .catch((e) => console.warn("analyze-roof background call failed", e));
+        }
+      }
 
       setCalculating(true);
     } catch (err) {

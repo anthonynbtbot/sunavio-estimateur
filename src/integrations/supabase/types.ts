@@ -63,6 +63,8 @@ export type Database = {
           notes: string | null
           phone: string | null
           recommended_kwc: number | null
+          roof_ai_analysis: Json | null
+          roof_ai_confidence: string | null
           roof_photos_urls: string[] | null
           roof_type: string | null
           status: string
@@ -91,6 +93,8 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           recommended_kwc?: number | null
+          roof_ai_analysis?: Json | null
+          roof_ai_confidence?: string | null
           roof_photos_urls?: string[] | null
           roof_type?: string | null
           status?: string
@@ -119,6 +123,8 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           recommended_kwc?: number | null
+          roof_ai_analysis?: Json | null
+          roof_ai_confidence?: string | null
           roof_photos_urls?: string[] | null
           roof_type?: string | null
           status?: string
