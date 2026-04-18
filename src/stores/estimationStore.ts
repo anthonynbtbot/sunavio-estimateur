@@ -59,6 +59,7 @@ export interface EstimationState {
     email: string;
   };
   leadId: string | null;
+  errorFieldId: string | null;
 }
 
 interface EstimationActions {
@@ -72,6 +73,7 @@ interface EstimationActions {
   setResults: (data: Partial<EstimationState["results"]>) => void;
   setContact: (data: Partial<EstimationState["contact"]>) => void;
   setLeadId: (id: string) => void;
+  setErrorFieldId: (id: string | null) => void;
   reset: () => void;
 }
 
@@ -116,6 +118,7 @@ const initialState: EstimationState = {
   },
   contact: { fullName: "", phone: "", email: "" },
   leadId: null,
+  errorFieldId: null,
 };
 
 export const useEstimationStore = create<EstimationState & EstimationActions>((set) => ({
@@ -130,6 +133,7 @@ export const useEstimationStore = create<EstimationState & EstimationActions>((s
   setResults: (data) => set((s) => ({ results: { ...s.results, ...data } })),
   setContact: (data) => set((s) => ({ contact: { ...s.contact, ...data } })),
   setLeadId: (id) => set({ leadId: id }),
+  setErrorFieldId: (id) => set({ errorFieldId: id }),
   reset: () => set(initialState),
 }));
 

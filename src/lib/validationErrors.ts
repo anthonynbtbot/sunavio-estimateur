@@ -11,6 +11,7 @@ export interface ErrorMapping {
   message: string;
   returnToStep: number;
   fieldHint?: string;
+  fieldId?: string;
 }
 
 export const VALIDATION_ERROR_MAP: Record<ValidationErrorCode, ErrorMapping> = {
@@ -18,39 +19,46 @@ export const VALIDATION_ERROR_MAP: Record<ValidationErrorCode, ErrorMapping> = {
     message: "Votre nom doit contenir entre 2 et 100 caractères.",
     returnToStep: 5,
     fieldHint: "Nom complet",
+    fieldId: "contact-fullname",
   },
   invalid_phone: {
     message:
       "Votre numéro de téléphone ne semble pas valide. Vérifiez qu'il s'agit bien d'un numéro marocain (ex : 06 63 28 44 44 ou +212 6 63 28 44 44).",
     returnToStep: 5,
     fieldHint: "Numéro WhatsApp",
+    fieldId: "contact-phone",
   },
   invalid_email: {
     message:
       "L'adresse email saisie ne semble pas valide. Vous pouvez aussi laisser ce champ vide.",
     returnToStep: 5,
     fieldHint: "Email",
+    fieldId: "contact-email",
   },
   invalid_city: {
     message: "La ville saisie ne semble pas valide.",
     returnToStep: 2,
     fieldHint: "Adresse",
+    fieldId: "location-address",
   },
   invalid_consumption: {
     message:
       "Les consommations saisies semblent aberrantes. Merci de vérifier vos valeurs mensuelles (elles doivent correspondre à une consommation annuelle entre 500 et 100 000 kWh).",
     returnToStep: 1,
     fieldHint: "Consommation mensuelle",
+    fieldId: "consumption-monthly-0",
   },
   invalid_housing_type: {
     message: "Le type de logement sélectionné n'est pas valide.",
     returnToStep: 3,
     fieldHint: "Type de logement",
+    fieldId: "housing-type",
   },
   invalid_roof_type: {
     message: "Le type de toit sélectionné n'est pas valide.",
     returnToStep: 3,
     fieldHint: "Type de toit",
+    fieldId: "roof-type",
   },
 };
 
