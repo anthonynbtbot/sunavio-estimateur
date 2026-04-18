@@ -6,6 +6,7 @@ import { SunavioCard } from "@/components/sunavio/SunavioCard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatNumber } from "@/lib/formatNumber";
 
 export const Step1Consumption = () => {
   const { consumption, setConsumption } = useEstimationStore();
@@ -328,16 +329,34 @@ export const Step1Consumption = () => {
           ))}
 
           {filled && consumption.annualKwh && (
-            <div className="flex items-center gap-3 bg-secondary border border-primary/40 px-4 py-3">
-              <BarChart3 className="size-5 text-primary shrink-0" />
-              <p className="text-sm text-foreground">
-                Soit une consommation annuelle estimée à{" "}
-                <span className="text-primary font-medium">
-                  {consumption.annualKwh.toLocaleString("fr-FR")}
-                </span>{" "}
-                kWh
-              </p>
-            </div>
+            <>
+              <div className="flex items-center gap-3 bg-secondary border border-primary/40 px-4 py-3">
+                <BarChart3 className="size-5 text-primary shrink-0" />
+                <p className="text-sm text-foreground">
+                  Soit une consommation annuelle estimée à{" "}
+                  <span className="text-primary font-medium">
+                    {formatNumber(consumption.annualKwh)}
+                  </span>{" "}
+                  kWh
+                </p>
+              </div>
+              {consumption.annualKwh < 500 && (
+                <div className="flex items-start gap-3 border border-primary/40 bg-primary/5 px-4 py-3 text-sm text-foreground">
+                  <AlertCircle className="size-4 text-primary shrink-0 mt-0.5" />
+                  <p>
+                    Cette consommation semble très faible pour un logement. Vérifiez que vos valeurs sont bien en kWh mensuels. Une consommation annuelle inférieure à 500 kWh nous empêchera de générer votre étude.
+                  </p>
+                </div>
+              )}
+              {consumption.annualKwh > 100000 && (
+                <div className="flex items-start gap-3 border border-primary/40 bg-primary/5 px-4 py-3 text-sm text-foreground">
+                  <AlertCircle className="size-4 text-primary shrink-0 mt-0.5" />
+                  <p>
+                    Cette consommation semble très élevée. Vérifiez que vos valeurs sont bien en kWh mensuels (et non annuels). Une consommation annuelle supérieure à 100 000 kWh nous empêchera de générer votre étude via cet estimateur — contactez-nous directement.
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
           <button

@@ -230,11 +230,11 @@ export const AdminLeadsList = () => {
                     <TableCell>{l.city ?? "—"}</TableCell>
                     <TableCell className="text-sm">{l.phone ?? "—"}</TableCell>
                     <TableCell>
-                      {l.recommended_kwc ? `${l.recommended_kwc} kWc` : "—"}
+                      {l.recommended_kwc ? formatKwc(l.recommended_kwc) : "—"}
                     </TableCell>
                     <TableCell className="text-sm">
                       {l.estimated_budget_min && l.estimated_budget_max
-                        ? `${(l.estimated_budget_min / 1000).toFixed(0)}–${(l.estimated_budget_max / 1000).toFixed(0)}k MAD`
+                        ? `${formatDh(l.estimated_budget_min)} – ${formatDh(l.estimated_budget_max)}`
                         : "—"}
                     </TableCell>
                     <TableCell>
