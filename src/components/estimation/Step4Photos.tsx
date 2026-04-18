@@ -97,10 +97,13 @@ export const Step4Photos = () => {
       />
 
       <div className="mb-10">
-        <h3 className="font-display text-lg text-foreground mb-4">
+        <h3 className="font-display text-lg text-foreground mb-1">
           Photos du toit{" "}
-          <span className="text-muted-foreground text-sm">(2 à 5)</span>
+          <span className="text-muted-foreground text-sm">(optionnel)</span>
         </h3>
+        <p className="text-xs text-muted-foreground mb-3">
+          Facultatif mais recommandé : jusqu'à 5 photos pour affiner l'étude.
+        </p>
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
           {photos.roofUrls.length < MAX_ROOF && (
             <button
