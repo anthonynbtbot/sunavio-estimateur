@@ -335,6 +335,7 @@ export const AdminLeadsList = () => {
                   <SortHead col="estimated_budget_min">Budget</SortHead>
                   <TableHead>IA toit</TableHead>
                   <TableHead>Statut</TableHead>
+                  <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
