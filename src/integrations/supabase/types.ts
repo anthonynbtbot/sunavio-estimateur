@@ -38,6 +38,30 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_rate_limit: {
+        Row: {
+          count: number
+          endpoint: string
+          id: string
+          ip_hash: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          endpoint: string
+          id?: string
+          ip_hash: string
+          window_start?: string
+        }
+        Update: {
+          count?: number
+          endpoint?: string
+          id?: string
+          ip_hash?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           address: string | null
@@ -131,6 +155,30 @@ export type Database = {
         }
         Relationships: []
       }
+      system_logs: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -164,7 +212,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      submit_lead: { Args: { payload: Json }; Returns: string }
+      submit_lead: { Args: { payload: Json }; Returns: Json }
     }
     Enums: {
       app_role: "admin"
