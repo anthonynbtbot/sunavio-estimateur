@@ -78,7 +78,7 @@ const Estimer = () => {
       const computed = computeResults();
       setResults(computed);
 
-      const { data: newLeadId, error } = await supabase.rpc("submit_lead", {
+      const { data: rpcData, error } = await supabase.rpc("submit_lead", {
         payload: {
           full_name: contact.fullName,
           phone: `+212${contact.phone.replace(/\s/g, "")}`,
@@ -107,16 +107,20 @@ const Estimer = () => {
       });
 
       if (error) throw error;
+      const result = rpcData as { success?: boolean; id?: string; error?: string } | null;
+      if (!result?.success) {
+        toast.error(`Soumission refusée : ${result?.error ?? "données invalides"}`);
+        setSubmitting(false);
+        return;
+      }
+      const newLeadId = result.id;
       if (newLeadId) {
-        setLeadId(newLeadId as string);
-        // Fire-and-forget: kick off roof photo analysis in the background.
-        if (photos.roofUrls.length > 0) {
-          supabase.functions
-            .invoke("analyze-roof", {
-              body: { leadId: newLeadId, photoUrls: photos.roofUrls },
-            })
-            .catch((e) => console.warn("analyze-roof background call failed", e));
-        }
+        // Server-side trigger (pg_net) handles roof analysis automatically.
+        // No more fire-and-forget here — fixes the "user closes tab" issue.
+        const idStr = typeof newLeadId === "string"
+          ? newLeadId
+          : (newLeadId as { id?: string })?.id;
+        if (idStr) setLeadId(idStr);
       }
 
       setCalculating(true);
