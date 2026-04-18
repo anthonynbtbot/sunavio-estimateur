@@ -100,6 +100,8 @@ const Estimer = () => {
           estimated_budget_max: computed.budgetMax,
           estimated_roi_years: computed.roiYears,
           invoice_photo_url: consumption.invoiceUrl,
+          invoice_ai_extracted: consumption.aiExtracted ?? null,
+          invoice_ai_confidence: consumption.aiConfidence ?? null,
           roof_photos_urls: photos.roofUrls,
           status: "new",
         })
