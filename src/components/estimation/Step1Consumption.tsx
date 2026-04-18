@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { AlertCircle, BarChart3, Camera, Check, CheckCircle2, ChevronDown, Edit3, Loader2 } from "lucide-react";
+import { AlertCircle, BarChart3, Camera, Check, CheckCircle2, ChevronDown, Edit3, FileText, Loader2 } from "lucide-react";
 import { useEstimationStore } from "@/stores/estimationStore";
 import { StepIntro } from "./EstimationLayout";
 import { SunavioCard } from "@/components/sunavio/SunavioCard";
@@ -24,27 +24,38 @@ export const Step1Consumption = () => {
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const MAX = 10 * 1024 * 1024;
+    if (file.size > MAX) {
+      toast.error(
+        "Votre fichier dépasse 10 MB. Merci de compresser le PDF ou de prendre une photo plus légère.",
+      );
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
+      const ext =
+        file.name.split(".").pop() ||
+        (file.type === "application/pdf" ? "pdf" : "jpg");
       const path = `invoices/${crypto.randomUUID()}.${ext}`;
       const { error } = await supabase.storage
         .from("lead-uploads")
-        .upload(path, file, { upsert: false });
+        .upload(path, file, {
+          upsert: false,
+          contentType: file.type || undefined,
+        });
       if (error) throw error;
       const { data } = supabase.storage.from("lead-uploads").getPublicUrl(path);
       setConsumption({
         method: "photo",
         invoiceFile: file,
         invoiceUrl: data.publicUrl,
-        // Pre-fill defaults for typical Moroccan household
-        monthlyKwh: [
-          consumption.monthlyKwh[0] ?? 180,
-          consumption.monthlyKwh[1] ?? 220,
-          consumption.monthlyKwh[2] ?? 195,
-        ],
+        aiStatus: "loading",
+        aiExtracted: null,
+        aiConfidence: null,
       });
-      toast.success("Photo reçue");
+      toast.success("Fichier reçu");
+      analyzeInvoice(data.publicUrl);
     } catch (err) {
       toast.error("Échec de l'upload, réessayez.");
       console.error(err);
@@ -52,6 +63,65 @@ export const Step1Consumption = () => {
       setUploading(false);
     }
   };
+
+  const analyzeInvoice = async (fileUrl: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-invoice", {
+        body: { imageUrl: fileUrl },
+      });
+      if (error) throw error;
+
+      if (data?.success && Array.isArray(data.monthly_kwh)) {
+        const m = data.monthly_kwh as number[];
+        const monthly: [number | null, number | null, number | null] = [
+          typeof m[0] === "number" ? m[0] : null,
+          typeof m[1] === "number" ? m[1] : null,
+          typeof m[2] === "number" ? m[2] : null,
+        ];
+        const filledM = monthly.every((v) => v !== null && v > 0);
+        const annual = filledM
+          ? Math.round(((monthly[0]! + monthly[1]! + monthly[2]!) / 3) * 12)
+          : data.annual_kwh ?? null;
+
+        if (data.contract_type || data.subscribed_power_kva) setShowOptional(true);
+
+        setConsumption({
+          monthlyKwh: monthly,
+          annualKwh: annual,
+          contractType: data.contract_type ?? null,
+          subscribedPower:
+            typeof data.subscribed_power_kva === "number"
+              ? data.subscribed_power_kva
+              : null,
+          aiExtracted: data,
+          aiConfidence: data.confidence ?? "medium",
+          aiStatus: "success",
+        });
+      } else {
+        setConsumption({
+          monthlyKwh: [
+            consumption.monthlyKwh[0] ?? 180,
+            consumption.monthlyKwh[1] ?? 220,
+            consumption.monthlyKwh[2] ?? 195,
+          ],
+          aiExtracted: data ?? null,
+          aiConfidence: data?.confidence ?? "low",
+          aiStatus: "failed",
+        });
+      }
+    } catch (err) {
+      console.error("analyze-invoice failed", err);
+      setConsumption({
+        monthlyKwh: [
+          consumption.monthlyKwh[0] ?? 180,
+          consumption.monthlyKwh[1] ?? 220,
+          consumption.monthlyKwh[2] ?? 195,
+        ],
+        aiStatus: "failed",
+      });
+    }
+  };
+
 
   const updateMonth = (idx: 0 | 1 | 2, value: string) => {
     const num = value === "" ? null : Number(value);
@@ -77,7 +147,7 @@ export const Step1Consumption = () => {
       <input
         ref={fileRef}
         type="file"
-        accept="image/*"
+        accept="image/*,application/pdf"
         className="hidden"
         onChange={handleFile}
       />
@@ -100,10 +170,10 @@ export const Step1Consumption = () => {
           </div>
           <Camera className="size-7 text-primary mb-3" />
           <h3 className="font-display text-xl text-foreground mb-1">
-            Photographier ma facture
+            Ajouter ma facture (photo ou PDF)
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Photographiez votre facture ONEE ou sélectionnez une image existante. Nous extrairons automatiquement les informations essentielles.
+            Photographiez votre facture ONEE, sélectionnez une photo existante, ou importez le PDF reçu par email. Nous extrairons automatiquement les informations essentielles.
           </p>
         </button>
 
@@ -127,17 +197,26 @@ export const Step1Consumption = () => {
         </button>
       </div>
 
-      {/* Photo confirmation + AI status */}
+      {/* Photo / PDF confirmation + AI status */}
       {consumption.method === "photo" && consumption.invoiceUrl && (
         <SunavioCard className="mb-8 p-5 flex items-start gap-4">
-          <img
-            src={consumption.invoiceUrl}
-            alt="Facture"
-            className="w-20 h-20 object-cover border border-border shrink-0"
-          />
+          {consumption.invoiceFile?.type === "application/pdf" ? (
+            <div className="w-20 h-20 bg-card border border-border flex flex-col items-center justify-center text-primary shrink-0 px-1">
+              <FileText className="size-7 mb-1" />
+              <span className="text-[9px] text-muted-foreground truncate w-full text-center">
+                {consumption.invoiceFile.name}
+              </span>
+            </div>
+          ) : (
+            <img
+              src={consumption.invoiceUrl}
+              alt="Facture"
+              className="w-20 h-20 object-cover border border-border shrink-0"
+            />
+          )}
           <div className="flex-1">
             <div className="flex items-center gap-2 text-primary text-sm mb-1">
-              <Check className="size-4" /> Photo reçue
+              <Check className="size-4" /> Fichier reçu
             </div>
 
             {consumption.aiStatus === "loading" && (
