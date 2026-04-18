@@ -266,6 +266,8 @@ export const AdminLeadDetail = () => {
           </CardHeader>
           <CardContent>
             <LeadLocationMap lat={lead.lat} lng={lead.lng} address={lead.address} />
+          </CardContent>
+        </Card>
 
         {/* Analyse IA Facture */}
         <Card>
