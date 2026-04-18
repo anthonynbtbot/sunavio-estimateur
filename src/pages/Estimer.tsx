@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { EstimationLayout } from "@/components/estimation/EstimationLayout";
@@ -12,7 +12,6 @@ import { ResultDisplay } from "@/components/estimation/ResultDisplay";
 import { useEstimationStore } from "@/stores/estimationStore";
 import { supabase } from "@/integrations/supabase/client";
 import { getErrorMapping } from "@/lib/validationErrors";
-import { estimateIrradiance } from "@/lib/irradiance";
 
 const Estimer = () => {
   const navigate = useNavigate();
@@ -27,13 +26,14 @@ const Estimer = () => {
     contact,
     setResults,
     setLeadId,
-    leadId,
   } = useEstimationStore();
 
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [calculating, setCalculating] = useState(false);
+  const [calcDone, setCalcDone] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const personalizedReqRef = useRef<Promise<void> | null>(null);
 
   const filledMonthly = consumption.monthlyKwh.every((v) => v !== null && v > 0);
   const canStep1 =
@@ -51,39 +51,11 @@ const Estimer = () => {
 
   const canContinue = [canStep1, canStep2, canStep3, canStep4, canStep5][currentStep - 1];
 
-  const computeResults = () => {
-    const annual = consumption.annualKwh ?? 0;
-    const irradiance =
-      location.lat !== null && location.lng !== null
-        ? estimateIrradiance(location.lat, location.lng).irradiance
-        : 1650;
-    const recommendedKwc = Math.round((annual / irradiance) * 10) / 10;
-    const annualProduction = Math.round(recommendedKwc * irradiance);
-    const budgetMin = Math.round(recommendedKwc * 6500);
-    const budgetMax = Math.round(recommendedKwc * 7500);
-    const roiYears =
-      annualProduction > 0
-        ? Math.round((budgetMin / (annualProduction * 1.2)) * 10) / 10
-        : 0;
-    const isViable = recommendedKwc >= 2;
-    return {
-      recommendedKwc,
-      annualProduction,
-      budgetMin,
-      budgetMax,
-      roiYears,
-      isViable,
-      viabilityMessage: isViable ? null : "Consommation trop faible pour rentabilité.",
-    };
-  };
-
   const handleSubmit = async () => {
     if (submitting) return;
     setSubmitting(true);
     try {
-      const computed = computeResults();
-      setResults(computed);
-
+      // 1. Submit lead via RPC (validation server-side)
       const { data: rpcData, error } = await supabase.rpc("submit_lead", {
         payload: {
           full_name: contact.fullName,
@@ -99,11 +71,6 @@ const Estimer = () => {
           has_ac: housing.hasAc,
           has_pool: housing.hasPool,
           has_ev: housing.hasEv,
-          recommended_kwc: computed.recommendedKwc,
-          estimated_production_kwh: computed.annualProduction,
-          estimated_budget_min: computed.budgetMin,
-          estimated_budget_max: computed.budgetMax,
-          estimated_roi_years: computed.roiYears,
           invoice_photo_url: consumption.invoiceUrl,
           invoice_ai_extracted: consumption.aiExtracted ?? null,
           invoice_ai_confidence: consumption.aiConfidence ?? null,
@@ -125,18 +92,91 @@ const Estimer = () => {
         setSubmitting(false);
         return;
       }
-      const newLeadId = result.id;
-      if (newLeadId) {
-        const idStr = typeof newLeadId === "string"
-          ? newLeadId
-          : (newLeadId as { id?: string })?.id;
-        if (idStr) setLeadId(idStr);
+      const newLeadId = result.id as string;
+      setLeadId(newLeadId);
+
+      // 2. Start the calculation overlay (loops until done)
+      setCalculating(true);
+      setCalcDone(false);
+
+      // 3. Call dimension-installation
+      const dimPayload = {
+        leadId: newLeadId,
+        annual_kwh: consumption.annualKwh,
+        monthly_kwh: consumption.monthlyKwh.filter((v) => v != null),
+        city: location.city,
+        lat: location.lat,
+        lng: location.lng,
+        housing_type: housing.type,
+        roof_type: housing.roofType,
+        roof_surface: housing.roofSurface,
+        has_ac: housing.hasAc,
+        has_pool: housing.hasPool,
+        has_ev: housing.hasEv,
+        contract_type: consumption.contractType,
+        subscribed_power_kva: consumption.subscribedPower,
+      };
+
+      const { data: dimData, error: dimError } = await supabase.functions.invoke(
+        "dimension-installation",
+        { body: dimPayload },
+      );
+
+      if (dimError || !dimData?.success) {
+        console.error("dimension error", dimError, dimData);
+        toast.error("Le dimensionnement a échoué. Réessayez dans un instant.");
+        setCalculating(false);
+        setSubmitting(false);
+        return;
       }
 
-      setCalculating(true);
+      const r = dimData.result;
+      setResults({
+        recommendedKwc: r?.v1?.recommended_kwc ?? null,
+        annualProduction: r?.v1?.annual_production_kwh ?? null,
+        budgetMin: r?.v1?.budget_min_dh ?? null,
+        budgetMax: r?.v1?.budget_max_dh ?? null,
+        roiYears: r?.v1?.roi_years ?? null,
+        isViable: !!r?.is_viable,
+        viabilityMessage: r?.viability_message ?? null,
+        v1: r?.v1 ?? null,
+        v2: r?.v2 ?? null,
+        technicalNotes: r?.technical_notes ?? [],
+        personalizedMessage: null,
+      });
+
+      // 4. Fire-and-forget personalized message (don't await before showing result)
+      personalizedReqRef.current = (async () => {
+        const { data: msgData } = await supabase.functions.invoke(
+          "generate-personalized-message",
+          {
+            body: {
+              leadId: newLeadId,
+              city: location.city,
+              housing_type: housing.type,
+              roof_type: housing.roofType,
+              roof_surface: housing.roofSurface,
+              annual_kwh: consumption.annualKwh,
+              has_ac: housing.hasAc,
+              has_pool: housing.hasPool,
+              has_ev: housing.hasEv,
+              is_viable: r?.is_viable,
+              v1: r?.v1,
+              v2: r?.v2,
+            },
+          },
+        );
+        if (msgData?.success && msgData?.message) {
+          setResults({ personalizedMessage: msgData.message });
+        }
+      })().catch((e) => console.error("personalized message failed", e));
+
+      // 5. Signal animation can finish; overlay completes its current cycle
+      setCalcDone(true);
     } catch (err) {
       console.error(err);
       toast.error("Une erreur est survenue. Réessayez dans un instant.");
+      setCalculating(false);
       setSubmitting(false);
     }
   };
@@ -155,6 +195,7 @@ const Estimer = () => {
   if (calculating) {
     return (
       <CalculationOverlay
+        done={calcDone}
         onDone={() => {
           setCalculating(false);
           setShowResult(true);
