@@ -78,9 +78,8 @@ const Estimer = () => {
       const computed = computeResults();
       setResults(computed);
 
-      const { data, error } = await supabase
-        .from("leads")
-        .insert({
+      const { data: newLeadId, error } = await supabase.rpc("submit_lead", {
+        payload: {
           full_name: contact.fullName,
           phone: `+212${contact.phone.replace(/\s/g, "")}`,
           email: contact.email || null,
@@ -104,19 +103,17 @@ const Estimer = () => {
           invoice_ai_confidence: consumption.aiConfidence ?? null,
           roof_photos_urls: photos.roofUrls,
           status: "new",
-        })
-        .select("id")
-        .single();
+        },
+      });
 
       if (error) throw error;
-      if (data) {
-        setLeadId(data.id);
+      if (newLeadId) {
+        setLeadId(newLeadId as string);
         // Fire-and-forget: kick off roof photo analysis in the background.
-        // The user does not wait — results are persisted on the lead for admin review.
         if (photos.roofUrls.length > 0) {
           supabase.functions
             .invoke("analyze-roof", {
-              body: { leadId: data.id, photoUrls: photos.roofUrls },
+              body: { leadId: newLeadId, photoUrls: photos.roofUrls },
             })
             .catch((e) => console.warn("analyze-roof background call failed", e));
         }
