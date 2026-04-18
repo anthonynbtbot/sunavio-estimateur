@@ -113,10 +113,10 @@ export const Step4Photos = () => {
               <span className="text-xs">Ajouter</span>
             </button>
           )}
-          {photos.roofUrls.map((url, i) => (
+          {photos.roofUrls.map((_p, i) => (
             <div key={i} className="relative aspect-square group">
               <img
-                src={url}
+                src={roofPreview(i)}
                 alt={`Toit ${i + 1}`}
                 className="w-full h-full object-cover border border-border"
               />
@@ -148,7 +148,7 @@ export const Step4Photos = () => {
           {photos.meterUrl ? (
             <div className="relative aspect-square">
               <img
-                src={photos.meterUrl}
+                src={photos.meterFile ? URL.createObjectURL(photos.meterFile) : ""}
                 alt="Compteur"
                 className="w-full h-full object-cover border border-border"
               />
