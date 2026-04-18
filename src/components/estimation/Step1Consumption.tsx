@@ -226,31 +226,40 @@ export const Step1Consumption = () => {
       </div>
 
       {/* Photo / PDF confirmation + AI status */}
-      {consumption.method === "photo" && consumption.invoiceUrl && (
-        <SunavioCard className="mb-8 p-5 flex items-start gap-4">
-          {consumption.invoiceFile?.type === "application/pdf" ? (
-            <div className="w-20 h-20 bg-card border border-border flex flex-col items-center justify-center text-primary shrink-0 px-1">
-              <FileText className="size-7 mb-1" />
-              <span className="text-[9px] text-muted-foreground truncate w-full text-center">
-                {consumption.invoiceFile.name}
-              </span>
-            </div>
-          ) : (
-            <img
-              src={consumption.invoiceUrl}
-              alt="Facture"
-              className="w-20 h-20 object-cover border border-border shrink-0"
-            />
-          )}
-          <div className="flex-1">
+      {consumption.method === "photo" && consumption.invoiceUrls.length > 0 && (
+        <SunavioCard className="mb-8 p-5">
+          <div className="flex flex-wrap gap-3 mb-4">
+            {consumption.invoiceFiles.map((file, idx) => (
+              <div key={idx} className="shrink-0">
+                {file.type === "application/pdf" ? (
+                  <div className="w-20 h-20 bg-card border border-border flex flex-col items-center justify-center text-primary px-1">
+                    <FileText className="size-7 mb-1" />
+                    <span className="text-[9px] text-muted-foreground truncate w-full text-center">
+                      {file.name}
+                    </span>
+                  </div>
+                ) : (
+                  <img
+                    src={consumption.invoiceUrls[idx]}
+                    alt={`Facture ${idx + 1}`}
+                    className="w-20 h-20 object-cover border border-border"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          <div>
             <div className="flex items-center gap-2 text-primary text-sm mb-1">
-              <Check className="size-4" /> Fichier reçu
+              <Check className="size-4" />
+              {consumption.invoiceFiles.length === 1
+                ? "Fichier reçu"
+                : `${consumption.invoiceFiles.length} factures reçues`}
             </div>
 
             {consumption.aiStatus === "loading" && (
               <p className="text-sm text-muted-foreground leading-relaxed flex items-center gap-2">
                 <Loader2 className="size-4 text-primary animate-spin" />
-                Lecture de votre facture en cours…
+                Lecture {consumption.invoiceFiles.length > 1 ? "de vos factures" : "de votre facture"} en cours…
               </p>
             )}
 
@@ -258,7 +267,7 @@ export const Step1Consumption = () => {
               <div className="text-sm leading-relaxed">
                 <div className="flex items-center gap-2 text-primary mb-1">
                   <CheckCircle2 className="size-4" />
-                  Nous avons lu votre facture.
+                  Nous avons lu {consumption.invoiceFiles.length > 1 ? "vos factures" : "votre facture"}.
                 </div>
                 <p className="text-muted-foreground">
                   Vérifiez les valeurs ci-dessous et ajustez si nécessaire.
@@ -271,7 +280,7 @@ export const Step1Consumption = () => {
                 <div className="text-sm leading-relaxed">
                   <div className="flex items-center gap-2 text-primary mb-1">
                     <AlertCircle className="size-4" />
-                    Lecture partielle de votre facture.
+                    Lecture partielle.
                   </div>
                   <p className="text-muted-foreground">
                     Certaines valeurs ne sont pas parfaitement claires. Merci de les vérifier attentivement.
@@ -283,7 +292,7 @@ export const Step1Consumption = () => {
               <div className="text-sm leading-relaxed">
                 <div className="flex items-center gap-2 text-primary mb-1">
                   <AlertCircle className="size-4" />
-                  Nous n'avons pas pu lire votre facture clairement.
+                  Nous n'avons pas pu lire {consumption.invoiceFiles.length > 1 ? "vos factures" : "votre facture"} clairement.
                 </div>
                 <p className="text-muted-foreground">
                   {consumption.aiExtracted?.suggestion ??
