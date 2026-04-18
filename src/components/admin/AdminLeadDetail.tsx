@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
-import { ArrowLeft, ExternalLink, Loader2, Save } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, RefreshCw, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { useSignedUrls } from "@/hooks/useSignedUrls";
+import { PhotoBlock } from "./PhotoBlock";
 import {
   Select,
   SelectContent,
@@ -75,6 +77,17 @@ export const AdminLeadDetail = () => {
   const [status, setStatus] = useState("new");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [reanalyzing, setReanalyzing] = useState(false);
+
+  const allPaths = useMemo(
+    () =>
+      [lead?.invoice_photo_url, ...(lead?.roof_photos_urls ?? [])].filter(
+        (p): p is string => !!p,
+      ),
+    [lead?.invoice_photo_url, lead?.roof_photos_urls],
+  );
+  const { urls, loading: urlsLoading } = useSignedUrls(allPaths);
+  const getUrl = (p?: string | null) => (p ? urls[p] : undefined);
 
   useEffect(() => {
     if (!id) return;
