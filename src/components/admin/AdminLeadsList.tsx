@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, LogOut, Search } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, LogOut, Search, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { formatNumber } from "@/lib/formatNumber";
 import { DataValue } from "@/components/ui/DataValue";
 import { cn } from "@/lib/utils";
@@ -103,6 +114,7 @@ export const AdminLeadsList = () => {
   const [sortCol, setSortCol] = useState<SortColumn>("created_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [allCities, setAllCities] = useState<string[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Leads — Sunavio Admin";
@@ -176,6 +188,20 @@ export const AdminLeadsList = () => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     toast.success("Déconnecté");
+  };
+
+  const handleDelete = async (leadId: string) => {
+    setDeletingId(leadId);
+    const { error } = await supabase.from("leads").delete().eq("id", leadId);
+    setDeletingId(null);
+    if (error) {
+      toast.error("Échec de la suppression");
+      console.error(error);
+      return;
+    }
+    toast.success("Lead supprimé");
+    setLeads((prev) => prev.filter((l) => l.id !== leadId));
+    setTotalCount((c) => Math.max(0, c - 1));
   };
 
   const toggleSort = (col: SortColumn) => {
@@ -309,12 +335,13 @@ export const AdminLeadsList = () => {
                   <SortHead col="estimated_budget_min">Budget</SortHead>
                   <TableHead>IA toit</TableHead>
                   <TableHead>Statut</TableHead>
+                  <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-10">
                       Aucun lead
                     </TableCell>
                   </TableRow>
@@ -375,6 +402,42 @@ export const AdminLeadsList = () => {
                       <Badge variant={statusVariant(l.status)}>
                         {statusLabel(l.status)}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label="Supprimer le lead"
+                          >
+                            {deletingId === l.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Supprimer ce lead ?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Cette action est définitive. Toutes les données du lead «&nbsp;{l.full_name ?? "Sans nom"}&nbsp;» seront supprimées et ne pourront pas être restaurées.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(l.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Supprimer définitivement
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))}

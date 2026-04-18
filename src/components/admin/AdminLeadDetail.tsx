@@ -1,9 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
-import { ArrowLeft, ExternalLink, Loader2, RefreshCw, Save } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, RefreshCw, Save, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -82,12 +93,14 @@ const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
 
 export const AdminLeadDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [lead, setLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("new");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [reanalyzing, setReanalyzing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const allPaths = useMemo(
     () =>
@@ -136,6 +149,20 @@ export const AdminLeadDetail = () => {
       toast.success("Lead mis à jour");
       setLead((prev) => (prev ? { ...prev, status, notes } : prev));
     }
+  };
+
+  const handleDelete = async () => {
+    if (!id || deleting) return;
+    setDeleting(true);
+    const { error } = await supabase.from("leads").delete().eq("id", id);
+    setDeleting(false);
+    if (error) {
+      toast.error("Échec de la suppression");
+      console.error(error);
+      return;
+    }
+    toast.success("Lead supprimé");
+    navigate("/admin");
   };
 
   if (loading) {
@@ -192,13 +219,41 @@ export const AdminLeadDetail = () => {
   return (
     <main className="min-h-screen bg-background pb-12">
       <header className="border-b border-border bg-card">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-3">
           <Link to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4 mr-1.5" /> Retour
           </Link>
-          <span className="text-xs text-muted-foreground">
-            Créé le {format(new Date(lead.created_at), "d MMMM yyyy à HH:mm", { locale: fr })}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              Créé le {format(new Date(lead.created_at), "d MMMM yyyy à HH:mm", { locale: fr })}
+            </span>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                  <Trash2 className="h-4 w-4 mr-1.5" /> Supprimer
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Supprimer ce lead ?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Cette action est définitive. Toutes les données du lead «&nbsp;{lead.full_name ?? "Sans nom"}&nbsp;» seront supprimées et ne pourront pas être restaurées.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deleting}>Annuler</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {deleting ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1.5" />}
+                    Supprimer définitivement
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       </header>
 
