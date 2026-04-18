@@ -230,20 +230,12 @@ export const Step1Consumption = () => {
           <div className="flex flex-wrap gap-3 mb-4">
             {consumption.invoiceFiles.map((file, idx) => (
               <div key={idx} className="shrink-0">
-                {file.type === "application/pdf" ? (
-                  <div className="w-20 h-20 bg-card border border-border flex flex-col items-center justify-center text-primary px-1">
-                    <FileText className="size-7 mb-1" />
-                    <span className="text-[9px] text-muted-foreground truncate w-full text-center">
-                      {file.name}
-                    </span>
-                  </div>
-                ) : (
-                  <img
-                    src={consumption.invoiceUrls[idx]}
-                    alt={`Facture ${idx + 1}`}
-                    className="w-20 h-20 object-cover border border-border"
-                  />
-                )}
+                <div className="w-20 h-20 bg-card border border-border flex flex-col items-center justify-center text-primary px-1">
+                  <FileText className="size-7 mb-1" />
+                  <span className="text-[9px] text-muted-foreground truncate w-full text-center">
+                    {file.name}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
