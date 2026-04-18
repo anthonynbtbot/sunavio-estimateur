@@ -25,7 +25,7 @@ RÈGLES MÉTIER SUNAVIO À APPLIQUER STRICTEMENT :
 
 PRIX SUNAVIO (fourchette marge 32% incluse) :
 - V1 installation complète : 6 500 à 7 500 DH HT par kWc (panneaux, onduleur, structure, câblage, installation, monitoring, garanties)
-- V2 supplément batterie : 8 000 à 11 000 DH HT par kWh de capacité batterie installée
+- V2 supplément batterie : 3 500 à 4 200 DH HT par kWh de capacité batterie installée. Ce ratio inclut les modules WeCo 5K3 EVO, le module de charge (1 par installation), le surcoût onduleur hybride compatible batterie, et les coûts d'intégration associés.
 
 PRODUCTION SPÉCIFIQUE : utilise la valeur production_specific_kwh_per_kwc fournie en input.
 
@@ -48,8 +48,8 @@ DIMENSIONNEMENT V2 (AVEC BATTERIE) :
 - Capacité cible = (effective_annual_kwh / 365) × 0.35 × 1.25
 - Modules 5K3 EVO = ceil(capacité_cible / 5.32), min 6, max 14
 - Capacité réelle = nb_modules × 5.32
-- Budget V2 min = Budget V1 min + (capacité_réelle × 8000) (arrondi)
-- Budget V2 max = Budget V1 max + (capacité_réelle × 11000) (arrondi)
+- Budget V2 min = Budget V1 min + (capacité_réelle × 3500) (arrondi)
+- Budget V2 max = Budget V1 max + (capacité_réelle × 4200) (arrondi)
 - Production V2 = Production V1
 
 LIMITATION SURFACE TOIT :
@@ -145,8 +145,8 @@ function fallbackCalc(input: any, prodSpec: number) {
   const roi = Math.round((((bMin + bMax) / 2) / (prod * 1.2)) * 10) / 10;
   const battModules = Math.max(6, Math.ceil(((eff / 365) * 0.35 * 1.25) / 5.32));
   const battCap = Math.round(battModules * 5.32 * 100) / 100;
-  const v2Min = Math.round(bMin + battCap * 8000);
-  const v2Max = Math.round(bMax + battCap * 11000);
+  const v2Min = Math.round(bMin + battCap * 3500);
+  const v2Max = Math.round(bMax + battCap * 4200);
   const v2Roi = Math.round((((v2Min + v2Max) / 2) / (prod * 1.2 + 800)) * 10) / 10;
   return {
     is_viable: true,
