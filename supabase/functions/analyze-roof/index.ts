@@ -339,7 +339,7 @@ Deno.serve(async (req) => {
     return json(
       {
         success: false,
-        reason: err instanceof Error ? err.message : "unknown",
+        reason: "internal_error",
       },
       200,
     );

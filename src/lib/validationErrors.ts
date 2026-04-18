@@ -5,7 +5,8 @@ export type ValidationErrorCode =
   | "invalid_city"
   | "invalid_consumption"
   | "invalid_housing_type"
-  | "invalid_roof_type";
+  | "invalid_roof_type"
+  | "rate_limit_submit";
 
 export interface ErrorMapping {
   message: string;
@@ -59,6 +60,11 @@ export const VALIDATION_ERROR_MAP: Record<ValidationErrorCode, ErrorMapping> = {
     returnToStep: 3,
     fieldHint: "Type de toit",
     fieldId: "roof-type",
+  },
+  rate_limit_submit: {
+    message:
+      "Trop de tentatives depuis votre connexion. Merci de patienter une heure avant de refaire une estimation.",
+    returnToStep: 5,
   },
 };
 

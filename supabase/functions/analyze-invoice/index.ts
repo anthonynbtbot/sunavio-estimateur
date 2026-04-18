@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { downloadFromBucket } from "../_shared/storage.ts";
 import { checkRateLimit, getClientIp } from "../_shared/rate-limit.ts";
+import { guardLeadMutation, isServiceRoleCall } from "../_shared/lead-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -93,18 +94,23 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  // Rate limit per IP (hashed)
-  const ip = getClientIp(req);
-  const rl = await checkRateLimit(supabase, ip, "analyze-invoice");
-  if (!rl.allowed) {
-    return json(
-      { success: false, error: "rate_limit", retry_after: rl.retryAfter, fallback: true },
-      429,
-    );
+  // Rate limit per IP (skip if service-role caller)
+  const isServiceCall = isServiceRoleCall(req);
+  if (!isServiceCall) {
+    const ip = getClientIp(req);
+    const rl = await checkRateLimit(supabase, ip, "analyze-invoice");
+    if (!rl.allowed) {
+      return json(
+        { success: false, error: "rate_limit", retry_after: rl.retryAfter, fallback: true },
+        429,
+      );
+    }
   }
 
   try {
     const body = await req.json();
+    const leadId: string | undefined = typeof body?.leadId === "string" ? body.leadId : undefined;
+
     // Accept new format `imagePaths` (relative paths) — and legacy `imageUrls` / `imageUrl`.
     let inputs: string[] = [];
     if (Array.isArray(body?.imagePaths)) {
@@ -118,6 +124,54 @@ Deno.serve(async (req) => {
       return json({ success: false, error: "imagePaths is required" }, 400);
     }
     if (inputs.length > MAX_FILES) inputs = inputs.slice(0, MAX_FILES);
+
+    // Path guard: must live under invoices/ prefix and not contain traversal
+    const safePaths = inputs.every((p) => {
+      const clean = p.replace(/^\/+/, "");
+      return clean.startsWith("invoices/") && !clean.includes("..") && clean.length < 300;
+    });
+    if (!safePaths) {
+      return json({ success: false, error: "forbidden", reason: "invalid_path" }, 403);
+    }
+
+    // Lead-bound guard for non-service callers
+    if (!isServiceCall) {
+      if (leadId) {
+        const guard = await guardLeadMutation(supabase, req, leadId);
+        if (!guard.allowed) {
+          return json({ success: false, error: "forbidden", reason: guard.reason }, 403);
+        }
+        const { data: lead } = await supabase
+          .from("leads")
+          .select("invoice_photo_url")
+          .eq("id", leadId)
+          .maybeSingle();
+        const linked = lead?.invoice_photo_url ?? null;
+        if (linked && !inputs.includes(linked)) {
+          return json({ success: false, error: "forbidden", reason: "path_mismatch" }, 403);
+        }
+      } else {
+        // No leadId: only allow paths whose object was uploaded < 10 min ago
+        const cutoff = Date.now() - 10 * 60 * 1000;
+        for (const p of inputs) {
+          const clean = p.replace(/^\/+/, "");
+          const slash = clean.lastIndexOf("/");
+          const dir = slash > 0 ? clean.slice(0, slash) : "";
+          const name = slash > 0 ? clean.slice(slash + 1) : clean;
+          const { data: list } = await supabase.storage.from(BUCKET).list(dir, {
+            search: name,
+            limit: 5,
+          });
+          const found = list?.find((o: { name: string; created_at?: string }) => o.name === name);
+          if (!found?.created_at) {
+            return json({ success: false, error: "forbidden", reason: "unknown_path" }, 403);
+          }
+          if (new Date(found.created_at).getTime() < cutoff) {
+            return json({ success: false, error: "forbidden", reason: "stale_path" }, 403);
+          }
+        }
+      }
+    }
 
     // Daily cap
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -240,7 +294,7 @@ Deno.serve(async (req) => {
       {
         success: false,
         confidence: "low",
-        reason: err instanceof Error ? err.message : "Erreur inconnue",
+        reason: "internal_error",
         fallback: true,
       },
       200,

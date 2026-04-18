@@ -120,6 +120,6 @@ Deno.serve(async (req) => {
     return json({ success: true, message });
   } catch (err) {
     console.error("generate-personalized-message error", err);
-    return json({ success: false, error: err instanceof Error ? err.message : "unknown" }, 500);
+    return json({ success: false, error: "internal_error" }, 500);
   }
 });
