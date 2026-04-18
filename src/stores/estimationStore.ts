@@ -77,6 +77,8 @@ const initialState: EstimationState = {
     method: null,
     invoiceFile: null,
     invoiceUrl: null,
+    invoiceFiles: [],
+    invoiceUrls: [],
     monthlyKwh: [null, null, null],
     annualKwh: null,
     contractType: null,
