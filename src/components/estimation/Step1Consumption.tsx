@@ -69,19 +69,27 @@ export const Step1Consumption = () => {
       const { data, error } = await supabase.functions.invoke("analyze-invoice", {
         body: { imageUrl: fileUrl },
       });
+      console.log("[analyze-invoice] response:", { data, error });
       if (error) throw error;
 
-      if (data?.success && Array.isArray(data.monthly_kwh)) {
-        const m = data.monthly_kwh as number[];
+      if (data?.success && Array.isArray(data.monthly_kwh) && data.monthly_kwh.length > 0) {
+        const m = data.monthly_kwh as unknown[];
+        const toNum = (v: unknown): number | null => {
+          const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
+          return Number.isFinite(n) && n > 0 ? n : null;
+        };
         const monthly: [number | null, number | null, number | null] = [
-          typeof m[0] === "number" ? m[0] : null,
-          typeof m[1] === "number" ? m[1] : null,
-          typeof m[2] === "number" ? m[2] : null,
+          toNum(m[0]),
+          toNum(m[1]),
+          toNum(m[2]),
         ];
-        const filledM = monthly.every((v) => v !== null && v > 0);
+        console.log("[analyze-invoice] parsed monthly:", monthly);
+        const filledM = monthly.every((v) => v !== null);
         const annual = filledM
           ? Math.round(((monthly[0]! + monthly[1]! + monthly[2]!) / 3) * 12)
-          : data.annual_kwh ?? null;
+          : typeof data.annual_kwh === "number"
+          ? data.annual_kwh
+          : null;
 
         if (data.contract_type || data.subscribed_power_kva) setShowOptional(true);
 
@@ -98,12 +106,8 @@ export const Step1Consumption = () => {
           aiStatus: "success",
         });
       } else {
+        console.warn("[analyze-invoice] no usable monthly_kwh", data);
         setConsumption({
-          monthlyKwh: [
-            consumption.monthlyKwh[0] ?? 180,
-            consumption.monthlyKwh[1] ?? 220,
-            consumption.monthlyKwh[2] ?? 195,
-          ],
           aiExtracted: data ?? null,
           aiConfidence: data?.confidence ?? "low",
           aiStatus: "failed",
@@ -112,11 +116,6 @@ export const Step1Consumption = () => {
     } catch (err) {
       console.error("analyze-invoice failed", err);
       setConsumption({
-        monthlyKwh: [
-          consumption.monthlyKwh[0] ?? 180,
-          consumption.monthlyKwh[1] ?? 220,
-          consumption.monthlyKwh[2] ?? 195,
-        ],
         aiStatus: "failed",
       });
     }
