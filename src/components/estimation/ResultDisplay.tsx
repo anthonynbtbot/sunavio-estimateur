@@ -3,9 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useEstimationStore } from "@/stores/estimationStore";
 import { SunavioCard } from "@/components/sunavio/SunavioCard";
 import { Button } from "@/components/ui/button";
-
-const formatNumber = (n: number) =>
-  n.toLocaleString("fr-FR").replace(/,/g, " ");
+import { formatNumber, formatKwc, formatKwh, formatDh, formatYears } from "@/lib/formatNumber";
 
 export const ResultDisplay = () => {
   const navigate = useNavigate();
@@ -31,7 +29,7 @@ export const ResultDisplay = () => {
           <p className="text-foreground leading-relaxed mb-4">
             Au vu de votre consommation actuelle (
             <span className="text-primary">
-              {consumption.annualKwh?.toLocaleString("fr-FR")} kWh/an
+              {formatKwh(consumption.annualKwh ?? 0)}/an
             </span>
             ), une installation solaire ne serait pas rentable pour vous aujourd'hui.
             Nous préférons vous le dire plutôt que vous vendre un projet qui ne vous
@@ -60,7 +58,7 @@ export const ResultDisplay = () => {
     );
   }
 
-  const panels = Math.ceil((results.recommendedKwc ?? 0) * 1000 / 630);
+  const panels = Math.ceil(((results.recommendedKwc ?? 0) * 1000) / 630);
 
   return (
     <div className="container max-w-3xl py-10 md:py-16 pb-32">
@@ -83,13 +81,13 @@ export const ResultDisplay = () => {
           Votre installation recommandée
         </h2>
         <div className="grid sm:grid-cols-3 gap-6">
-          <Kpi value={`${results.recommendedKwc} kWc`} label="Puissance recommandée" />
+          <Kpi value={formatKwc(results.recommendedKwc ?? 0)} label="Puissance recommandée" />
           <Kpi
-            value={`${formatNumber(results.annualProduction ?? 0)} kWh/an`}
+            value={`${formatKwh(results.annualProduction ?? 0)}/an`}
             label="Production estimée"
           />
           <Kpi
-            value={`${panels} panneaux`}
+            value={`${formatNumber(panels)} panneaux`}
             label="Jinko Tiger Neo 630W"
           />
         </div>
@@ -101,8 +99,8 @@ export const ResultDisplay = () => {
           Votre investissement
         </h2>
         <p className="font-display text-2xl md:text-3xl text-primary mb-3">
-          De {formatNumber(results.budgetMin ?? 0)} à{" "}
-          {formatNumber(results.budgetMax ?? 0)} DH HT
+          De {formatDh(results.budgetMin ?? 0)} à{" "}
+          {formatDh(results.budgetMax ?? 0)} HT
         </p>
         <p className="text-sm text-muted-foreground leading-relaxed">
           Prix indicatif incluant équipements premium, installation, monitoring,
@@ -116,7 +114,7 @@ export const ResultDisplay = () => {
           Votre rentabilité
         </h2>
         <p className="font-display text-3xl md:text-4xl text-primary mb-3">
-          ~{results.roiYears} ans
+          ~{formatYears(results.roiYears ?? 0)}
         </p>
         <p className="text-sm text-muted-foreground leading-relaxed">
           Vos panneaux s'autofinancent, puis vous produisent de l'énergie gratuite
