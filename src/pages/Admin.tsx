@@ -1,10 +1,10 @@
-import PlaceholderPage from "./PlaceholderPage";
+import { ProtectedAdmin } from "@/components/admin/ProtectedAdmin";
+import { AdminLeadsList } from "@/components/admin/AdminLeadsList";
 
 const Admin = () => (
-  <PlaceholderPage
-    title="Espace ingénieurs SUNAVIO"
-    description="Le tableau de bord des leads sera disponible prochainement, accessible uniquement à l'équipe SUNAVIO."
-  />
+  <ProtectedAdmin>
+    <AdminLeadsList />
+  </ProtectedAdmin>
 );
 
 export default Admin;
