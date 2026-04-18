@@ -212,6 +212,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      set_service_role_secret: { Args: { _value: string }; Returns: Json }
       submit_lead: { Args: { payload: Json }; Returns: Json }
     }
     Enums: {
