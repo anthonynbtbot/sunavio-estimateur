@@ -10,6 +10,8 @@ export interface EstimationState {
     method: ConsumptionMethod;
     invoiceFile: File | null;
     invoiceUrl: string | null;
+    invoiceFiles: File[];
+    invoiceUrls: string[];
     monthlyKwh: [number | null, number | null, number | null];
     annualKwh: number | null;
     contractType: string | null;
@@ -75,6 +77,8 @@ const initialState: EstimationState = {
     method: null,
     invoiceFile: null,
     invoiceUrl: null,
+    invoiceFiles: [],
+    invoiceUrls: [],
     monthlyKwh: [null, null, null],
     annualKwh: null,
     contractType: null,
