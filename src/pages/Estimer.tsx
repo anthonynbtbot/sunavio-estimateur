@@ -18,6 +18,7 @@ const Estimer = () => {
   const {
     currentStep,
     next,
+    setStep,
     consumption,
     location,
     housing,
@@ -110,14 +111,18 @@ const Estimer = () => {
       if (error) throw error;
       const result = rpcData as { success?: boolean; id?: string; error?: string } | null;
       if (!result?.success) {
-        toast.error(`Soumission refusée : ${result?.error ?? "données invalides"}`);
+        const code = result?.error ?? "";
+        const mapping = getErrorMapping(code);
+        toast.error(mapping.message, { duration: 8000 });
+        if (mapping.returnToStep && mapping.returnToStep !== currentStep) {
+          setStep(mapping.returnToStep);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
         setSubmitting(false);
         return;
       }
       const newLeadId = result.id;
       if (newLeadId) {
-        // Server-side trigger (pg_net) handles roof analysis automatically.
-        // No more fire-and-forget here — fixes the "user closes tab" issue.
         const idStr = typeof newLeadId === "string"
           ? newLeadId
           : (newLeadId as { id?: string })?.id;
