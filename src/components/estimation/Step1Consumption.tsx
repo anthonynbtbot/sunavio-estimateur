@@ -82,31 +82,41 @@ export const Step1Consumption = () => {
     }
   };
 
-  const analyzeInvoice = async (fileUrl: string) => {
+  const analyzeInvoices = async (fileUrls: string[]) => {
     try {
       const { data, error } = await supabase.functions.invoke("analyze-invoice", {
-        body: { imageUrl: fileUrl },
+        body: { imageUrls: fileUrls },
       });
       console.log("[analyze-invoice] response:", { data, error });
       if (error) throw error;
 
       if (data?.success && Array.isArray(data.monthly_kwh) && data.monthly_kwh.length > 0) {
-        const m = data.monthly_kwh as unknown[];
         const toNum = (v: unknown): number | null => {
           const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
           return Number.isFinite(n) && n > 0 ? n : null;
         };
+        const extracted = (data.monthly_kwh as unknown[])
+          .map(toNum)
+          .filter((n): n is number => n !== null)
+          .slice(0, 3);
+
+        // Place extracted values left-aligned (oldest -> newest), pad with null
         const monthly: [number | null, number | null, number | null] = [
-          toNum(m[0]),
-          toNum(m[1]),
-          toNum(m[2]),
+          extracted[0] ?? null,
+          extracted[1] ?? null,
+          extracted[2] ?? null,
         ];
+
         console.log("[analyze-invoice] parsed monthly:", monthly);
         const filledM = monthly.every((v) => v !== null);
         const annual = filledM
           ? Math.round(((monthly[0]! + monthly[1]! + monthly[2]!) / 3) * 12)
           : typeof data.annual_kwh === "number"
           ? data.annual_kwh
+          : extracted.length > 0
+          ? Math.round(
+              (extracted.reduce((a, b) => a + b, 0) / extracted.length) * 12,
+            )
           : null;
 
         if (data.contract_type || data.subscribed_power_kva) setShowOptional(true);
