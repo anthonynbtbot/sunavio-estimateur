@@ -151,6 +151,20 @@ export const AdminLeadDetail = () => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!id || deleting) return;
+    setDeleting(true);
+    const { error } = await supabase.from("leads").delete().eq("id", id);
+    setDeleting(false);
+    if (error) {
+      toast.error("Échec de la suppression");
+      console.error(error);
+      return;
+    }
+    toast.success("Lead supprimé");
+    navigate("/admin");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
