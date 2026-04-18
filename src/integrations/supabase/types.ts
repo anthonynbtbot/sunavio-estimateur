@@ -68,6 +68,7 @@ export type Database = {
           city: string | null
           consumption_kwh_year: number | null
           created_at: string
+          dimensioning_ai_result: Json | null
           email: string | null
           estimated_budget_max: number | null
           estimated_budget_min: number | null
@@ -85,6 +86,7 @@ export type Database = {
           lat: number | null
           lng: number | null
           notes: string | null
+          personalized_message: string | null
           phone: string | null
           recommended_kwc: number | null
           roof_ai_analysis: Json | null
@@ -92,12 +94,18 @@ export type Database = {
           roof_photos_urls: string[] | null
           roof_type: string | null
           status: string
+          v2_battery_capacity_kwh: number | null
+          v2_battery_modules: number | null
+          v2_budget_max: number | null
+          v2_budget_min: number | null
+          v2_roi_years: number | null
         }
         Insert: {
           address?: string | null
           city?: string | null
           consumption_kwh_year?: number | null
           created_at?: string
+          dimensioning_ai_result?: Json | null
           email?: string | null
           estimated_budget_max?: number | null
           estimated_budget_min?: number | null
@@ -115,6 +123,7 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           notes?: string | null
+          personalized_message?: string | null
           phone?: string | null
           recommended_kwc?: number | null
           roof_ai_analysis?: Json | null
@@ -122,12 +131,18 @@ export type Database = {
           roof_photos_urls?: string[] | null
           roof_type?: string | null
           status?: string
+          v2_battery_capacity_kwh?: number | null
+          v2_battery_modules?: number | null
+          v2_budget_max?: number | null
+          v2_budget_min?: number | null
+          v2_roi_years?: number | null
         }
         Update: {
           address?: string | null
           city?: string | null
           consumption_kwh_year?: number | null
           created_at?: string
+          dimensioning_ai_result?: Json | null
           email?: string | null
           estimated_budget_max?: number | null
           estimated_budget_min?: number | null
@@ -145,6 +160,7 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           notes?: string | null
+          personalized_message?: string | null
           phone?: string | null
           recommended_kwc?: number | null
           roof_ai_analysis?: Json | null
@@ -152,6 +168,11 @@ export type Database = {
           roof_photos_urls?: string[] | null
           roof_type?: string | null
           status?: string
+          v2_battery_capacity_kwh?: number | null
+          v2_battery_modules?: number | null
+          v2_budget_max?: number | null
+          v2_budget_min?: number | null
+          v2_roi_years?: number | null
         }
         Relationships: []
       }
