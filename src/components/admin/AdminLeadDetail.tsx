@@ -219,13 +219,41 @@ export const AdminLeadDetail = () => {
   return (
     <main className="min-h-screen bg-background pb-12">
       <header className="border-b border-border bg-card">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-3">
           <Link to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4 mr-1.5" /> Retour
           </Link>
-          <span className="text-xs text-muted-foreground">
-            Créé le {format(new Date(lead.created_at), "d MMMM yyyy à HH:mm", { locale: fr })}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              Créé le {format(new Date(lead.created_at), "d MMMM yyyy à HH:mm", { locale: fr })}
+            </span>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                  <Trash2 className="h-4 w-4 mr-1.5" /> Supprimer
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Supprimer ce lead ?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Cette action est définitive. Toutes les données du lead «&nbsp;{lead.full_name ?? "Sans nom"}&nbsp;» seront supprimées et ne pourront pas être restaurées.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deleting}>Annuler</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {deleting ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1.5" />}
+                    Supprimer définitivement
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       </header>
 
