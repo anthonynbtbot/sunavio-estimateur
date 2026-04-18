@@ -34,13 +34,25 @@ const genSessionToken = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
 
-export const AddressInput = ({ value, onChange }: Props) => {
+export const AddressInput = (props: Props) => {
   const { apiKey, loading: keyLoading } = useGoogleMapsKey();
+  if (keyLoading || !apiKey) {
+    return (
+      <div className="h-[280px] bg-card border border-border flex items-center justify-center">
+        <Loader2 className="size-6 text-muted-foreground animate-spin" />
+      </div>
+    );
+  }
+  return <AddressInputInner {...props} apiKey={apiKey} />;
+};
+
+const AddressInputInner = ({ value, onChange, apiKey }: Props & { apiKey: string }) => {
   const { isLoaded: mapsLoaded } = useJsApiLoader({
-    googleMapsApiKey: apiKey ?? "",
+    googleMapsApiKey: apiKey,
     libraries: MAP_LIBRARIES,
     id: "google-map-script",
   });
+  const keyLoading = false;
 
   const [input, setInput] = useState(value.address);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
