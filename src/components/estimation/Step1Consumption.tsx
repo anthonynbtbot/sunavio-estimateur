@@ -78,7 +78,6 @@ export const Step1Consumption = () => {
         ref={fileRef}
         type="file"
         accept="image/*"
-        capture="environment"
         className="hidden"
         onChange={handleFile}
       />
@@ -104,7 +103,7 @@ export const Step1Consumption = () => {
             Photographier ma facture
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Prenez en photo votre dernière facture ONEE. Nous extrairons automatiquement les informations essentielles.
+            Photographiez votre facture ONEE ou sélectionnez une image existante. Nous extrairons automatiquement les informations essentielles.
           </p>
         </button>
 
