@@ -185,6 +185,18 @@ export const AdminLeadDetail = () => {
               />
               <Field label="ROI" value={lead.estimated_roi_years ? `${lead.estimated_roi_years} ans` : null} />
               <Field label="Conso annuelle" value={lead.consumption_kwh_year ? `${lead.consumption_kwh_year.toLocaleString()} kWh` : null} />
+              {roof?.sizing_adjustment?.applied && (
+                <div className="mt-3 p-3 rounded-md border border-border bg-muted/40 text-xs space-y-1">
+                  <p className="font-medium text-foreground">
+                    ⚡ Puissance plafonnée par la surface IA
+                  </p>
+                  <p className="text-muted-foreground">
+                    Initial : {roof.sizing_adjustment.previous_kwc} kWc · Plafonné à {roof.sizing_adjustment.capped_kwc} kWc
+                    <br />
+                    Surface utile retenue : {roof.sizing_adjustment.surface_m2_used} m² ({roof.sizing_adjustment.m2_per_kwc} m²/kWc)
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
