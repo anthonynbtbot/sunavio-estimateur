@@ -278,13 +278,92 @@ Deno.serve(async (req) => {
     });
 
     const confidence = typeof parsed.confidence === "string" ? parsed.confidence : "medium";
-    await supabase
-      .from("leads")
-      .update({
-        roof_ai_analysis: parsed,
-        roof_ai_confidence: confidence,
-      })
-      .eq("id", leadId);
+
+    // ----- Cap recommended_kwc by AI-detected usable roof surface -----
+    // Densité PV résidentielle : ~6 m² par kWc (panneaux ~630 Wc ≈ 2 m²).
+    const M2_PER_KWC = 6;
+
+    // On privilégie la surface installable nette (après obstacles + ombrage),
+    // sinon la surface utile brute.
+    const netM2 = Number(parsed?.recommendation?.net_installable_m2);
+    const usableM2 = Number(parsed?.geometry?.usable_surface_m2);
+    const surfaceM2 = Number.isFinite(netM2) && netM2 > 0
+      ? netM2
+      : Number.isFinite(usableM2) && usableM2 > 0
+        ? usableM2
+        : null;
+
+    const updatePayload: Record<string, unknown> = {
+      roof_ai_analysis: parsed,
+      roof_ai_confidence: confidence,
+    };
+
+    if (surfaceM2 !== null) {
+      // Lis le lead courant pour récupérer les valeurs déjà calculées côté client.
+      const { data: lead } = await supabase
+        .from("leads")
+        .select(
+          "recommended_kwc, city, consumption_kwh_year, estimated_production_kwh, estimated_budget_min, estimated_budget_max, estimated_roi_years",
+        )
+        .eq("id", leadId)
+        .maybeSingle();
+
+      const currentKwc = Number(lead?.recommended_kwc ?? 0);
+      const maxKwcBySurface = Math.floor((surfaceM2 / M2_PER_KWC) * 10) / 10;
+
+      if (
+        currentKwc > 0 &&
+        maxKwcBySurface > 0 &&
+        maxKwcBySurface < currentKwc
+      ) {
+        // Surface insuffisante → on plafonne la puissance.
+        const city = (lead?.city ?? "").toString();
+        const irradiance = city === "Essaouira" ? 1750 : city === "Agadir" ? 1700 : 1650;
+
+        const newKwc = maxKwcBySurface;
+        const newProduction = Math.round(newKwc * irradiance);
+        const newBudgetMin = Math.round(newKwc * 14000);
+        const newBudgetMax = Math.round(newKwc * 18000);
+        const newRoi = newProduction > 0
+          ? Math.round((newBudgetMin / (newProduction * 1.2)) * 10) / 10
+          : null;
+
+        updatePayload.recommended_kwc = newKwc;
+        updatePayload.estimated_production_kwh = newProduction;
+        updatePayload.estimated_budget_min = newBudgetMin;
+        updatePayload.estimated_budget_max = newBudgetMax;
+        updatePayload.estimated_roi_years = newRoi;
+
+        // Trace dans roof_ai_analysis pour l'admin.
+        (parsed as any).sizing_adjustment = {
+          applied: true,
+          reason: "surface_cap",
+          previous_kwc: currentKwc,
+          capped_kwc: newKwc,
+          surface_m2_used: surfaceM2,
+          m2_per_kwc: M2_PER_KWC,
+        };
+        updatePayload.roof_ai_analysis = parsed;
+
+        console.log(
+          `Lead ${leadId}: capped kWc ${currentKwc} → ${newKwc} (surface ${surfaceM2}m²)`,
+        );
+      } else {
+        (parsed as any).sizing_adjustment = {
+          applied: false,
+          reason:
+            currentKwc <= 0
+              ? "no_initial_kwc"
+              : "surface_sufficient",
+          initial_kwc: currentKwc,
+          surface_m2_available: surfaceM2,
+          m2_per_kwc: M2_PER_KWC,
+        };
+        updatePayload.roof_ai_analysis = parsed;
+      }
+    }
+
+    await supabase.from("leads").update(updatePayload).eq("id", leadId);
 
     return json({ success: true, confidence }, 200);
   } catch (err) {
