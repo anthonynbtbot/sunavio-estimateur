@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { downloadFromBucket } from "../_shared/storage.ts";
+import { checkRateLimit, getClientIp } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +11,7 @@ const corsHeaders = {
 const DAILY_LIMIT = Number(Deno.env.get("DAILY_AI_LIMIT") ?? "500");
 const MODEL = "google/gemini-2.5-pro";
 const MAX_FILES = 3;
+const BUCKET = "lead-uploads";
 
 const SYSTEM_PROMPT = `Tu es un assistant spécialisé dans l'extraction d'informations des factures d'électricité de l'Office National de l'Électricité et de l'Eau Potable (ONEE) du Maroc.
 
@@ -80,26 +83,6 @@ function parseAiJson(raw: string): any | null {
   }
 }
 
-async function fetchAsDataUrl(
-  url: string,
-): Promise<{ dataUrl: string; mimeType: string }> {
-  let mimeType = "image/jpeg";
-  try {
-    const fileRes = await fetch(url);
-    if (fileRes.ok) {
-      mimeType = fileRes.headers.get("content-type") ?? mimeType;
-      const buf = new Uint8Array(await fileRes.arrayBuffer());
-      let bin = "";
-      for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
-      const b64 = btoa(bin);
-      return { dataUrl: `data:${mimeType};base64,${b64}`, mimeType };
-    }
-  } catch (e) {
-    console.warn("Could not pre-fetch file, falling back to URL", e);
-  }
-  return { dataUrl: url, mimeType };
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -110,23 +93,33 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  // Rate limit per IP (hashed)
+  const ip = getClientIp(req);
+  const rl = await checkRateLimit(supabase, ip, "analyze-invoice");
+  if (!rl.allowed) {
+    return json(
+      { success: false, error: "rate_limit", retry_after: rl.retryAfter, fallback: true },
+      429,
+    );
+  }
+
   try {
     const body = await req.json();
-    // Accept either imageUrls: string[] or legacy imageUrl: string
-    let urls: string[] = [];
-    if (Array.isArray(body?.imageUrls)) {
-      urls = body.imageUrls.filter((u: unknown) => typeof u === "string");
+    // Accept new format `imagePaths` (relative paths) — and legacy `imageUrls` / `imageUrl`.
+    let inputs: string[] = [];
+    if (Array.isArray(body?.imagePaths)) {
+      inputs = body.imagePaths.filter((u: unknown) => typeof u === "string");
+    } else if (Array.isArray(body?.imageUrls)) {
+      inputs = body.imageUrls.filter((u: unknown) => typeof u === "string");
     } else if (typeof body?.imageUrl === "string") {
-      urls = [body.imageUrl];
+      inputs = [body.imageUrl];
     }
-    if (urls.length === 0) {
-      return json({ success: false, error: "imageUrls is required" }, 400);
+    if (inputs.length === 0) {
+      return json({ success: false, error: "imagePaths is required" }, 400);
     }
-    if (urls.length > MAX_FILES) {
-      urls = urls.slice(0, MAX_FILES);
-    }
+    if (inputs.length > MAX_FILES) inputs = inputs.slice(0, MAX_FILES);
 
-    // Daily cap check
+    // Daily cap
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { count } = await supabase
       .from("ai_call_log")
@@ -152,20 +145,39 @@ Deno.serve(async (req) => {
     }
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+
+    // Download via service role from private bucket
+    const fetched: { dataUrl: string; mimeType: string }[] = [];
+    for (const p of inputs) {
+      const f = await downloadFromBucket(supabase, BUCKET, p);
+      if (f) fetched.push(f);
     }
 
-    // Fetch all files in parallel
-    const fetched = await Promise.all(urls.map((u) => fetchAsDataUrl(u)));
-    const hasPdf = fetched.some((f) => f.mimeType === "application/pdf");
+    if (fetched.length === 0) {
+      await supabase.from("ai_call_log").insert({
+        function_name: "analyze-invoice",
+        success: false,
+        error_code: "fetch_failed",
+      });
+      return json(
+        {
+          success: false,
+          confidence: "low",
+          reason: "Impossible de récupérer les fichiers.",
+          fallback: true,
+        },
+        200,
+      );
+    }
 
+    const hasPdf = fetched.some((f) => f.mimeType === "application/pdf");
     const userPrompt =
-      urls.length === 1
+      fetched.length === 1
         ? hasPdf
           ? "Analyse ce PDF de facture ONEE et extrais les informations demandées."
           : "Analyse cette facture ONEE et extrais les informations demandées."
-        : `Analyse ces ${urls.length} factures ONEE (chacune correspond à un mois différent) et fournis les informations consolidées.`;
+        : `Analyse ces ${fetched.length} factures ONEE (chacune correspond à un mois différent) et fournis les informations consolidées.`;
 
     const userContent: any[] = [{ type: "text", text: userPrompt }];
     for (const f of fetched) {
@@ -174,10 +186,7 @@ Deno.serve(async (req) => {
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 4000,
@@ -198,51 +207,17 @@ Deno.serve(async (req) => {
         error_code: String(aiRes.status),
       });
       if (aiRes.status === 429) {
-        return json(
-          {
-            success: false,
-            confidence: "low",
-            reason: "Trop de requêtes, réessayez dans un instant.",
-            fallback: true,
-          },
-          200,
-        );
+        return json({ success: false, confidence: "low", reason: "Trop de requêtes, réessayez dans un instant.", fallback: true }, 200);
       }
       if (aiRes.status === 402) {
-        return json(
-          {
-            success: false,
-            confidence: "low",
-            reason: "Crédits IA épuisés.",
-            fallback: true,
-          },
-          200,
-        );
+        return json({ success: false, confidence: "low", reason: "Crédits IA épuisés.", fallback: true }, 200);
       }
-      return json(
-        {
-          success: false,
-          confidence: "low",
-          reason: "Service d'analyse indisponible.",
-          fallback: true,
-        },
-        200,
-      );
+      return json({ success: false, confidence: "low", reason: "Service d'analyse indisponible.", fallback: true }, 200);
     }
 
     const data = await aiRes.json();
     const raw = data?.choices?.[0]?.message?.content ?? "";
-    const finishReason = data?.choices?.[0]?.finish_reason;
-    console.log(
-      "AI raw length:",
-      raw.length,
-      "finish_reason:",
-      finishReason,
-      "files:",
-      urls.length,
-    );
     const parsed = parseAiJson(raw);
-    if (!parsed) console.error("Parse failed for raw:", raw);
 
     if (!parsed || typeof parsed !== "object") {
       await supabase.from("ai_call_log").insert({
@@ -250,15 +225,7 @@ Deno.serve(async (req) => {
         success: false,
         error_code: "parse_error",
       });
-      return json(
-        {
-          success: false,
-          confidence: "low",
-          reason: "Réponse IA non exploitable.",
-          fallback: true,
-        },
-        200,
-      );
+      return json({ success: false, confidence: "low", reason: "Réponse IA non exploitable.", fallback: true }, 200);
     }
 
     await supabase.from("ai_call_log").insert({
