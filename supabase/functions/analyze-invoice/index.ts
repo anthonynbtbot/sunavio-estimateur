@@ -123,6 +123,29 @@ Deno.serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Fetch the file to determine MIME and re-encode as data URL (works for images & PDFs)
+    let dataUrl = imageUrl;
+    let mimeType = "image/jpeg";
+    try {
+      const fileRes = await fetch(imageUrl);
+      if (fileRes.ok) {
+        mimeType = fileRes.headers.get("content-type") ?? mimeType;
+        const buf = new Uint8Array(await fileRes.arrayBuffer());
+        // base64 encode
+        let bin = "";
+        for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+        const b64 = btoa(bin);
+        dataUrl = `data:${mimeType};base64,${b64}`;
+      }
+    } catch (e) {
+      console.warn("Could not pre-fetch file, falling back to URL", e);
+    }
+
+    const userPrompt =
+      mimeType === "application/pdf"
+        ? "Analyse ce PDF de facture ONEE et extrais les informations demandées."
+        : "Analyse cette facture ONEE et extrais les informations demandées.";
+
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -137,8 +160,8 @@ Deno.serve(async (req) => {
           {
             role: "user",
             content: [
-              { type: "text", text: "Analyse cette facture ONEE et extrais les informations demandées." },
-              { type: "image_url", image_url: { url: imageUrl } },
+              { type: "text", text: userPrompt },
+              { type: "image_url", image_url: { url: dataUrl } },
             ],
           },
         ],
