@@ -37,6 +37,23 @@ type LeadRow = {
   estimated_budget_max: number | null;
   roof_ai_confidence: string | null;
   invoice_ai_confidence: string | null;
+  roof_ai_analysis: any;
+};
+
+const roofAiBadge = (l: LeadRow) => {
+  const ageMs = Date.now() - new Date(l.created_at).getTime();
+  const young = ageMs < 2 * 60 * 1000;
+  const r = l.roof_ai_analysis;
+  if (!r) {
+    if (young) return { label: "En attente", variant: "secondary" as const, title: "Analyse en cours" };
+    return { label: "Non lancée", variant: "outline" as const, title: "Cliquer sur la fiche pour relancer" };
+  }
+  if (r.success === false) return { label: "Échouée", variant: "destructive" as const, title: r.reason ?? "" };
+  return {
+    label: `OK${l.roof_ai_confidence ? ` (${l.roof_ai_confidence})` : ""}`,
+    variant: "default" as const,
+    title: "",
+  };
 };
 
 const STATUS_OPTIONS = [
@@ -75,7 +92,7 @@ export const AdminLeadsList = () => {
       const { data, error } = await supabase
         .from("leads")
         .select(
-          "id, created_at, full_name, phone, email, city, status, recommended_kwc, estimated_budget_min, estimated_budget_max, roof_ai_confidence, invoice_ai_confidence",
+          "id, created_at, full_name, phone, email, city, status, recommended_kwc, estimated_budget_min, estimated_budget_max, roof_ai_confidence, invoice_ai_confidence, roof_ai_analysis",
         )
         .order("created_at", { ascending: false })
         .limit(500);
@@ -221,13 +238,14 @@ export const AdminLeadsList = () => {
                         : "—"}
                     </TableCell>
                     <TableCell>
-                      {l.roof_ai_confidence ? (
-                        <Badge variant="outline" className="capitalize">
-                          {l.roof_ai_confidence}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
+                      {(() => {
+                        const b = roofAiBadge(l);
+                        return (
+                          <Badge variant={b.variant} title={b.title} className="capitalize">
+                            {b.label}
+                          </Badge>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <Badge variant={statusVariant(l.status)}>
