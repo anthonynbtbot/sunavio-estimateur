@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
-import { ArrowLeft, ExternalLink, Loader2, RefreshCw, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, ImageOff, Loader2, RefreshCw, Save, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -439,111 +439,129 @@ export const AdminLeadDetail = () => {
         </Card>
 
         {/* Analyse IA Toit */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Analyse IA — Toiture</CardTitle>
-            {lead.roof_ai_confidence && (
-              <Badge variant="outline" className="capitalize">{lead.roof_ai_confidence}</Badge>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {roof?.success === false && (
-              <p className="text-sm text-destructive">
-                Analyse échouée : {roof.reason ?? "raison inconnue"}.
-              </p>
-            )}
-            {roof?.roof && (
-              <div>
-                <Field label="Type" value={roof.roof.type} />
-                <Field label="Matériau" value={roof.roof.material} />
-                <Field label="État" value={roof.roof.condition} />
-                {roof.roof.condition_notes && (
-                  <Field label="Notes état" value={roof.roof.condition_notes} />
+        {(() => {
+          const hasRoofPhotos = Array.isArray(lead.roof_photos_urls) && lead.roof_photos_urls.length > 0;
+          if (!hasRoofPhotos) {
+            return (
+              <Card className="border-primary/40 bg-card">
+                <CardHeader className="flex flex-row items-start gap-3 space-y-0">
+                  <ImageOff className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <CardTitle className="text-base">Pas de photos fournies par le prospect</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                      Ce prospect a choisi de passer l'étape photos. Prévoir un temps d'analyse plus long lors de la visite technique pour relever la configuration du toit.
+                    </p>
+                  </div>
+                </CardHeader>
+              </Card>
+            );
+          }
+          return (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base">Analyse IA — Toiture</CardTitle>
+                {lead.roof_ai_confidence && (
+                  <Badge variant="outline" className="capitalize">{lead.roof_ai_confidence}</Badge>
                 )}
-              </div>
-            )}
-            {roof?.geometry && (
-              <div>
-                <Field label="Surface utile" value={roof.geometry.usable_surface_m2 ? `${roof.geometry.usable_surface_m2} m²` : null} />
-                <Field label="Orientation" value={roof.geometry.orientation} />
-                <Field label="Pente" value={roof.geometry.tilt_degrees != null ? `${roof.geometry.tilt_degrees}°` : null} />
-              </div>
-            )}
-            {Array.isArray(roof?.obstacles) && roof.obstacles.length > 0 && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Obstacles</p>
-                <ul className="space-y-1">
-                  {roof.obstacles.map((o: any, i: number) => (
-                    <li key={i} className="text-sm">
-                      <span className="font-medium capitalize">{o.type}</span> — {o.label}
-                      {o.impact_pct != null && <span className="text-muted-foreground"> · -{o.impact_pct}%</span>}
-                    </li>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {roof?.success === false && (
+                  <p className="text-sm text-destructive">
+                    Analyse échouée : {roof.reason ?? "raison inconnue"}.
+                  </p>
+                )}
+                {roof?.roof && (
+                  <div>
+                    <Field label="Type" value={roof.roof.type} />
+                    <Field label="Matériau" value={roof.roof.material} />
+                    <Field label="État" value={roof.roof.condition} />
+                    {roof.roof.condition_notes && (
+                      <Field label="Notes état" value={roof.roof.condition_notes} />
+                    )}
+                  </div>
+                )}
+                {roof?.geometry && (
+                  <div>
+                    <Field label="Surface utile" value={roof.geometry.usable_surface_m2 ? `${roof.geometry.usable_surface_m2} m²` : null} />
+                    <Field label="Orientation" value={roof.geometry.orientation} />
+                    <Field label="Pente" value={roof.geometry.tilt_degrees != null ? `${roof.geometry.tilt_degrees}°` : null} />
+                  </div>
+                )}
+                {Array.isArray(roof?.obstacles) && roof.obstacles.length > 0 && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Obstacles</p>
+                    <ul className="space-y-1">
+                      {roof.obstacles.map((o: any, i: number) => (
+                        <li key={i} className="text-sm">
+                          <span className="font-medium capitalize">{o.type}</span> — {o.label}
+                          {o.impact_pct != null && <span className="text-muted-foreground"> · -{o.impact_pct}%</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {roof?.shading && (
+                  <div>
+                    <Field label="Risque ombrage" value={roof.shading.risk} />
+                    {roof.shading.notes && <Field label="Notes ombrage" value={roof.shading.notes} />}
+                  </div>
+                )}
+                {roof?.recommendation && (
+                  <div>
+                    <Field label="Verdict" value={roof.recommendation.verdict} />
+                    {roof.recommendation.rationale && (
+                      <Field label="Justification" value={roof.recommendation.rationale} />
+                    )}
+                    {roof.recommendation.net_installable_m2 != null && (
+                      <Field label="Surface installable nette" value={`${roof.recommendation.net_installable_m2} m²`} />
+                    )}
+                  </div>
+                )}
+                {!roof && (
+                  <p className="text-sm text-muted-foreground">
+                    Analyse en cours ou non démarrée.
+                  </p>
+                )}
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-3">
+                  {lead.roof_photos_urls!.map((p, i) => (
+                    <PhotoBlock
+                      key={p}
+                      path={p}
+                      url={getUrl(p)}
+                      loading={urlsLoading}
+                      label={`Toit ${i + 1}`}
+                    />
                   ))}
-                </ul>
-              </div>
-            )}
-            {roof?.shading && (
-              <div>
-                <Field label="Risque ombrage" value={roof.shading.risk} />
-                {roof.shading.notes && <Field label="Notes ombrage" value={roof.shading.notes} />}
-              </div>
-            )}
-            {roof?.recommendation && (
-              <div>
-                <Field label="Verdict" value={roof.recommendation.verdict} />
-                {roof.recommendation.rationale && (
-                  <Field label="Justification" value={roof.recommendation.rationale} />
-                )}
-                {roof.recommendation.net_installable_m2 != null && (
-                  <Field label="Surface installable nette" value={`${roof.recommendation.net_installable_m2} m²`} />
-                )}
-              </div>
-            )}
-            {!roof && (
-              <p className="text-sm text-muted-foreground">
-                Analyse en cours ou non démarrée.
-              </p>
-            )}
+                </div>
 
-            {Array.isArray(lead.roof_photos_urls) && lead.roof_photos_urls.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-3">
-                {lead.roof_photos_urls.map((p, i) => (
-                  <PhotoBlock
-                    key={p}
-                    path={p}
-                    url={getUrl(p)}
-                    loading={urlsLoading}
-                    label={`Toit ${i + 1}`}
-                  />
-                ))}
-              </div>
-            )}
-
-            {canRelaunch && (
-              <div className="pt-3 border-t border-border mt-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRelaunchRoof}
-                  disabled={reanalyzing}
-                  className="border-primary/40 text-primary hover:bg-primary/5"
-                >
-                  {reanalyzing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Analyse en cours…
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Relancer l'analyse IA du toit
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                {canRelaunch && (
+                  <div className="pt-3 border-t border-border mt-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRelaunchRoof}
+                      disabled={reanalyzing}
+                      className="border-primary/40 text-primary hover:bg-primary/5"
+                    >
+                      {reanalyzing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Analyse en cours…
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Relancer l'analyse IA du toit
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Édition admin */}
         <Card>

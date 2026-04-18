@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, LogOut, Search, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ImageOff, Loader2, LogOut, Search, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +52,7 @@ type LeadRow = {
   roof_ai_confidence: string | null;
   invoice_ai_confidence: string | null;
   roof_ai_analysis: any;
+  roof_photos_urls: string[] | null;
 };
 
 const PAGE_SIZE = 20;
@@ -151,7 +152,7 @@ export const AdminLeadsList = () => {
       let q = supabase
         .from("leads")
         .select(
-          "id, created_at, full_name, phone, email, city, status, recommended_kwc, estimated_budget_min, estimated_budget_max, roof_ai_confidence, invoice_ai_confidence, roof_ai_analysis",
+          "id, created_at, full_name, phone, email, city, status, recommended_kwc, estimated_budget_min, estimated_budget_max, roof_ai_confidence, invoice_ai_confidence, roof_ai_analysis, roof_photos_urls",
           { count: "exact" },
         )
         .order(sortCol, { ascending: sortDir === "asc", nullsFirst: false });
@@ -390,6 +391,19 @@ export const AdminLeadsList = () => {
                     </TableCell>
                     <TableCell>
                       {(() => {
+                        const hasPhotos = Array.isArray(l.roof_photos_urls) && l.roof_photos_urls.length > 0;
+                        if (!hasPhotos) {
+                          return (
+                            <Badge
+                              variant="outline"
+                              title="Ce lead n'a pas fourni de photos de toit. La visite technique nécessitera une analyse complète sur place."
+                              className="border-primary/50 text-primary bg-primary/5 inline-flex items-center gap-1"
+                            >
+                              <ImageOff className="h-3 w-3" />
+                              Sans photo
+                            </Badge>
+                          );
+                        }
                         const b = roofAiBadge(l);
                         return (
                           <Badge variant={b.variant} title={b.title} className="capitalize">
