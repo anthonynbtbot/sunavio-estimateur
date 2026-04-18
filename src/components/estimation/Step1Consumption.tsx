@@ -175,6 +175,7 @@ export const Step1Consumption = () => {
         ref={fileRef}
         type="file"
         accept="image/*,application/pdf"
+        multiple
         className="hidden"
         onChange={handleFile}
       />
