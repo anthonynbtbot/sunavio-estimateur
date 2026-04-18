@@ -56,27 +56,29 @@ const Estimer = () => {
     if (submitting) return;
     setSubmitting(true);
     try {
-      // 1. Submit lead via RPC (validation server-side)
-      const { data: rpcData, error } = await supabase.rpc("submit_lead", {
-        payload: {
-          full_name: contact.fullName,
-          phone: `+212${contact.phone.replace(/\s/g, "")}`,
-          email: contact.email || null,
-          city: location.city,
-          address: location.address,
-          lat: location.lat,
-          lng: location.lng,
-          consumption_kwh_year: consumption.annualKwh,
-          housing_type: housing.type,
-          roof_type: housing.roofType,
-          has_ac: housing.hasAc,
-          has_pool: housing.hasPool,
-          has_ev: housing.hasEv,
-          invoice_photo_url: consumption.invoiceUrl,
-          invoice_ai_extracted: consumption.aiExtracted ?? null,
-          invoice_ai_confidence: consumption.aiConfidence ?? null,
-          roof_photos_urls: photos.roofUrls,
-          status: "new",
+      // 1. Submit lead via edge function wrapper (server-side IP rate limit + validation)
+      const { data: rpcData, error } = await supabase.functions.invoke("submit-lead", {
+        body: {
+          payload: {
+            full_name: contact.fullName,
+            phone: `+212${contact.phone.replace(/\s/g, "")}`,
+            email: contact.email || null,
+            city: location.city,
+            address: location.address,
+            lat: location.lat,
+            lng: location.lng,
+            consumption_kwh_year: consumption.annualKwh,
+            housing_type: housing.type,
+            roof_type: housing.roofType,
+            has_ac: housing.hasAc,
+            has_pool: housing.hasPool,
+            has_ev: housing.hasEv,
+            invoice_photo_url: consumption.invoiceUrl,
+            invoice_ai_extracted: consumption.aiExtracted ?? null,
+            invoice_ai_confidence: consumption.aiConfidence ?? null,
+            roof_photos_urls: photos.roofUrls,
+            status: "new",
+          },
         },
       });
 
