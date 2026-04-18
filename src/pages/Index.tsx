@@ -49,9 +49,9 @@ const pillars = [
 ];
 
 const projects = [
-  { name: "Golf Assoufid", power: "50 kWc", type: "Micro-réseau solaire", city: "Marrakech" },
-  { name: "Villa Pinto", power: "19,5 kWc", type: "Résidentiel premium", city: "Al Maaden" },
-  { name: "Résidence Aguerd", power: "3,15 kWc", type: "Résidentiel", city: "Essaouira" },
+  { name: "Micro-réseau solaire", power: "50 kWc", type: "Golf & loisirs", city: "Marrakech" },
+  { name: "Installation hybride", power: "19,5 kWc", type: "Villa premium", city: "Marrakech" },
+  { name: "Installation résidentielle", power: "3,15 kWc", type: "Résidence côtière", city: "Essaouira" },
 ];
 
 const Index = () => {
