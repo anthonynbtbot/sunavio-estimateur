@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Camera, X } from "lucide-react";
+import { Camera, Info, X } from "lucide-react";
 import { useEstimationStore } from "@/stores/estimationStore";
 import { StepIntro } from "./EstimationLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -98,11 +98,10 @@ export const Step4Photos = () => {
 
       <div className="mb-10">
         <h3 className="font-display text-lg text-foreground mb-1">
-          Photos du toit{" "}
-          <span className="text-muted-foreground text-sm">(optionnel)</span>
+          Photos du toit
         </h3>
         <p className="text-xs text-muted-foreground mb-3">
-          Facultatif mais recommandé : jusqu'à 5 photos pour affiner l'étude.
+          Recommandé — 2 à 5 photos permettent une étude bien plus précise (détection d'obstacles, orientation, surface utilisable). Vous pouvez aussi passer cette étape si vous préférez.
         </p>
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
           {photos.roofUrls.length < MAX_ROOF && (
@@ -134,8 +133,16 @@ export const Step4Photos = () => {
             </div>
           ))}
         </div>
+        {photos.roofUrls.length === 0 && (
+          <div className="mt-4 flex gap-2 items-start p-3 bg-card border border-primary/40 rounded-sm">
+            <Info className="size-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Sans photos, notre ingénieur devra tout analyser lors de la visite technique — la pré-étude sera moins précise.
+            </p>
+          </div>
+        )}
         <p className="text-xs text-muted-foreground mt-3">
-          Prenez vos photos directement ou sélectionnez-les depuis votre galerie. Minimum 2 photos, idéalement avec un bon éclairage et sous différents angles.
+          Prenez vos photos directement ou sélectionnez-les depuis votre galerie, idéalement avec un bon éclairage et sous différents angles.
         </p>
       </div>
 
