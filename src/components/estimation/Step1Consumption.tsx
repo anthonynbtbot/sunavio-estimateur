@@ -7,12 +7,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/formatNumber";
+import { DataValue } from "@/components/ui/DataValue";
+import { useErrorHighlight } from "@/hooks/useErrorHighlight";
 
 export const Step1Consumption = () => {
   const { consumption, setConsumption } = useEstimationStore();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [showOptional, setShowOptional] = useState(false);
+  const monthHl = useErrorHighlight("consumption-monthly-0");
 
   const choose = (method: "photo" | "manual") => {
     if (method === "photo") {
@@ -314,12 +317,18 @@ export const Step1Consumption = () => {
               </label>
               <div className="relative">
                 <input
+                  id={`consumption-monthly-${i}`}
                   type="number"
                   inputMode="numeric"
                   placeholder={field.placeholder}
                   value={consumption.monthlyKwh[i as 0 | 1 | 2] ?? ""}
                   onChange={(e) => updateMonth(i as 0 | 1 | 2, e.target.value)}
-                  className="w-full bg-card border border-border px-4 py-3 pr-14 text-foreground focus:border-primary focus:outline-none transition-colors"
+                  onFocus={i === 0 ? monthHl.onFocus : undefined}
+                  data-error={i === 0 ? monthHl["data-error"] : undefined}
+                  className={cn(
+                    "w-full bg-card border border-border px-4 py-3 pr-14 text-foreground focus:border-primary focus:outline-none transition-colors",
+                    i === 0 && monthHl.className,
+                  )}
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                   kWh
@@ -334,10 +343,7 @@ export const Step1Consumption = () => {
                 <BarChart3 className="size-5 text-primary shrink-0" />
                 <p className="text-sm text-foreground">
                   Soit une consommation annuelle estimée à{" "}
-                  <span className="text-primary font-medium">
-                    {formatNumber(consumption.annualKwh)}
-                  </span>{" "}
-                  kWh
+                  <DataValue value={formatNumber(consumption.annualKwh)} unit="kWh" size="sm" tone="gold" />
                 </p>
               </div>
               {consumption.annualKwh < 500 && (
