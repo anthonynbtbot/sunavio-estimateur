@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { BarChart3, Camera, Check, ChevronDown, Edit3 } from "lucide-react";
+import { AlertCircle, BarChart3, Camera, Check, CheckCircle2, ChevronDown, Edit3, Loader2 } from "lucide-react";
 import { useEstimationStore } from "@/stores/estimationStore";
 import { StepIntro } from "./EstimationLayout";
 import { SunavioCard } from "@/components/sunavio/SunavioCard";
