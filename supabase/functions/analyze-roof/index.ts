@@ -119,6 +119,19 @@ function parseAiJson(raw: string): any | null {
   }
 }
 
+function bytesToBase64(bytes: Uint8Array): string {
+  // Process in chunks to avoid creating huge intermediate strings.
+  const CHUNK = 0x8000;
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    bin += String.fromCharCode.apply(
+      null,
+      bytes.subarray(i, i + CHUNK) as unknown as number[],
+    );
+  }
+  return btoa(bin);
+}
+
 async function fetchAsDataUrl(
   url: string,
 ): Promise<{ dataUrl: string; mimeType: string } | null> {
@@ -127,9 +140,7 @@ async function fetchAsDataUrl(
     if (!r.ok) return null;
     const mimeType = r.headers.get("content-type") ?? "image/jpeg";
     const buf = new Uint8Array(await r.arrayBuffer());
-    let bin = "";
-    for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
-    return { dataUrl: `data:${mimeType};base64,${btoa(bin)}`, mimeType };
+    return { dataUrl: `data:${mimeType};base64,${bytesToBase64(buf)}`, mimeType };
   } catch (e) {
     console.warn("fetchAsDataUrl failed", url, e);
     return null;
