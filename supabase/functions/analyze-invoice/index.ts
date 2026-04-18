@@ -155,6 +155,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 1500,
+        response_format: { type: "json_object" },
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           {
@@ -211,6 +212,7 @@ Deno.serve(async (req) => {
 
     const data = await aiRes.json();
     const raw = data?.choices?.[0]?.message?.content ?? "";
+    console.log("AI raw response (first 500 chars):", raw.slice(0, 500));
     const parsed = parseAiJson(raw);
 
     if (!parsed || typeof parsed !== "object") {
