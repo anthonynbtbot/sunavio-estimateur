@@ -234,7 +234,9 @@ export type Database = {
         Returns: boolean
       }
       set_service_role_secret: { Args: { _value: string }; Returns: Json }
-      submit_lead: { Args: { payload: Json }; Returns: Json }
+      submit_lead:
+        | { Args: { payload: Json }; Returns: Json }
+        | { Args: { _ip_hash?: string; payload: Json }; Returns: Json }
     }
     Enums: {
       app_role: "admin"
