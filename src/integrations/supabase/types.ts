@@ -14,7 +14,87 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      leads: {
+        Row: {
+          address: string | null
+          city: string | null
+          consumption_kwh_year: number | null
+          created_at: string
+          email: string | null
+          estimated_budget_max: number | null
+          estimated_budget_min: number | null
+          estimated_production_kwh: number | null
+          estimated_roi_years: number | null
+          full_name: string | null
+          has_ac: boolean | null
+          has_ev: boolean | null
+          has_pool: boolean | null
+          housing_type: string | null
+          id: string
+          invoice_photo_url: string | null
+          lat: number | null
+          lng: number | null
+          notes: string | null
+          phone: string | null
+          recommended_kwc: number | null
+          roof_photos_urls: string[] | null
+          roof_type: string | null
+          status: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          consumption_kwh_year?: number | null
+          created_at?: string
+          email?: string | null
+          estimated_budget_max?: number | null
+          estimated_budget_min?: number | null
+          estimated_production_kwh?: number | null
+          estimated_roi_years?: number | null
+          full_name?: string | null
+          has_ac?: boolean | null
+          has_ev?: boolean | null
+          has_pool?: boolean | null
+          housing_type?: string | null
+          id?: string
+          invoice_photo_url?: string | null
+          lat?: number | null
+          lng?: number | null
+          notes?: string | null
+          phone?: string | null
+          recommended_kwc?: number | null
+          roof_photos_urls?: string[] | null
+          roof_type?: string | null
+          status?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          consumption_kwh_year?: number | null
+          created_at?: string
+          email?: string | null
+          estimated_budget_max?: number | null
+          estimated_budget_min?: number | null
+          estimated_production_kwh?: number | null
+          estimated_roi_years?: number | null
+          full_name?: string | null
+          has_ac?: boolean | null
+          has_ev?: boolean | null
+          has_pool?: boolean | null
+          housing_type?: string | null
+          id?: string
+          invoice_photo_url?: string | null
+          lat?: number | null
+          lng?: number | null
+          notes?: string | null
+          phone?: string | null
+          recommended_kwc?: number | null
+          roof_photos_urls?: string[] | null
+          roof_type?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
