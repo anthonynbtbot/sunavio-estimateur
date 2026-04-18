@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const DAILY_LIMIT = Number(Deno.env.get("DAILY_AI_LIMIT") ?? "500");
 const MODEL = "google/gemini-2.5-pro";
-const MAX_PHOTOS = 6;
+const MAX_PHOTOS = 4;
 
 const SYSTEM_PROMPT = `Tu es un expert en installations photovoltaïques résidentielles au Maroc, spécialisé dans l'analyse de photos de toitures pour évaluer leur potentiel solaire.
 
