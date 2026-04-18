@@ -212,6 +212,7 @@ Deno.serve(async (req) => {
 
     const data = await aiRes.json();
     const raw = data?.choices?.[0]?.message?.content ?? "";
+    console.log("AI raw response (first 500 chars):", raw.slice(0, 500));
     const parsed = parseAiJson(raw);
 
     if (!parsed || typeof parsed !== "object") {
