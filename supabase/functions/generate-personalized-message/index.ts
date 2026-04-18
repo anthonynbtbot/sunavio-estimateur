@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { checkRateLimit, getClientIp } from "../_shared/rate-limit.ts";
+import { guardLeadMutation } from "../_shared/lead-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -67,6 +68,14 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     const leadId: string | undefined = body?.leadId;
+
+    if (leadId) {
+      const guard = await guardLeadMutation(supabase, req, leadId);
+      if (!guard.allowed) {
+        return json({ success: false, error: "forbidden", reason: guard.reason }, 403);
+      }
+    }
+
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 

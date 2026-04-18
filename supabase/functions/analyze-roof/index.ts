@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { downloadFromBucket } from "../_shared/storage.ts";
 import { checkRateLimit, getClientIp } from "../_shared/rate-limit.ts";
+import { guardLeadMutation, isServiceRoleCall } from "../_shared/lead-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -133,9 +134,7 @@ Deno.serve(async (req) => {
   );
 
   // Rate limit (skip if called via service role from pg_net trigger)
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const isServiceCall = serviceKey.length > 0 && authHeader === `Bearer ${serviceKey}`;
+  const isServiceCall = isServiceRoleCall(req);
 
   if (!isServiceCall) {
     const ip = getClientIp(req);
@@ -151,6 +150,14 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     const leadId: string | undefined = body?.leadId;
+
+    // Guard: only the DB trigger (service role) or freshly-created lead context may write
+    if (leadId) {
+      const guard = await guardLeadMutation(supabase, req, leadId);
+      if (!guard.allowed) {
+        return json({ success: false, error: "forbidden", reason: guard.reason }, 403);
+      }
+    }
 
     // Accept new `photoPaths` (relative paths) and legacy `photoUrls`
     let inputs: string[] = [];
