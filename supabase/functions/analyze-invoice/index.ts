@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 1500,
+        max_tokens: 4000,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
@@ -212,8 +212,12 @@ Deno.serve(async (req) => {
 
     const data = await aiRes.json();
     const raw = data?.choices?.[0]?.message?.content ?? "";
-    console.log("AI raw response (first 500 chars):", raw.slice(0, 500));
+    const finishReason = data?.choices?.[0]?.finish_reason;
+    console.log("AI raw length:", raw.length, "finish_reason:", finishReason);
+    console.log("AI raw response (first 800):", raw.slice(0, 800));
+    console.log("AI raw response (last 300):", raw.slice(-300));
     const parsed = parseAiJson(raw);
+    if (!parsed) console.error("Parse failed for raw:", raw);
 
     if (!parsed || typeof parsed !== "object") {
       await supabase.from("ai_call_log").insert({
