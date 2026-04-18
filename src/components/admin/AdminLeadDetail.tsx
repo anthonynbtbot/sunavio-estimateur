@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useSignedUrls } from "@/hooks/useSignedUrls";
 import { PhotoBlock } from "./PhotoBlock";
+import { LeadLocationMap } from "./LeadLocationMap";
 import { formatKwc, formatKwh, formatDh, formatYears } from "@/lib/formatNumber";
 import {
   Select,
@@ -255,24 +256,18 @@ export const AdminLeadDetail = () => {
               <Field label="Climatisation" value={lead.has_ac ? "Oui" : "Non"} />
               <Field label="Piscine" value={lead.has_pool ? "Oui" : "Non"} />
               <Field label="Voiture électrique" value={lead.has_ev ? "Oui" : "Non"} />
-              {lead.lat && lead.lng && (
-                <Field
-                  label="Coordonnées"
-                  value={
-                    <a
-                      href={`https://maps.google.com/?q=${lead.lat},${lead.lng}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-primary inline-flex items-center gap-1"
-                    >
-                      Voir sur la carte <ExternalLink className="h-3 w-3" />
-                    </a>
-                  }
-                />
-              )}
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Localisation</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <LeadLocationMap lat={lead.lat} lng={lead.lng} address={lead.address} />
+          </CardContent>
+        </Card>
 
         {/* Analyse IA Facture */}
         <Card>

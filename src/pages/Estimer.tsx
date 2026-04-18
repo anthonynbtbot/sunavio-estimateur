@@ -12,6 +12,7 @@ import { ResultDisplay } from "@/components/estimation/ResultDisplay";
 import { useEstimationStore } from "@/stores/estimationStore";
 import { supabase } from "@/integrations/supabase/client";
 import { getErrorMapping } from "@/lib/validationErrors";
+import { estimateIrradiance } from "@/lib/irradiance";
 
 const Estimer = () => {
   const navigate = useNavigate();
@@ -52,7 +53,10 @@ const Estimer = () => {
 
   const computeResults = () => {
     const annual = consumption.annualKwh ?? 0;
-    const irradiance = location.city === "Essaouira" ? 1750 : location.city === "Agadir" ? 1700 : 1650;
+    const irradiance =
+      location.lat !== null && location.lng !== null
+        ? estimateIrradiance(location.lat, location.lng).irradiance
+        : 1650;
     const recommendedKwc = Math.round((annual / irradiance) * 10) / 10;
     const annualProduction = Math.round(recommendedKwc * irradiance);
     const budgetMin = Math.round(recommendedKwc * 6500);
