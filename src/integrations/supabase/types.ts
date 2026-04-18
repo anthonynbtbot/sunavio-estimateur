@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_call_log: {
+        Row: {
+          created_at: string
+          error_code: string | null
+          function_name: string
+          id: string
+          success: boolean
+        }
+        Insert: {
+          created_at?: string
+          error_code?: string | null
+          function_name: string
+          id?: string
+          success?: boolean
+        }
+        Update: {
+          created_at?: string
+          error_code?: string | null
+          function_name?: string
+          id?: string
+          success?: boolean
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           address: string | null
@@ -31,6 +55,8 @@ export type Database = {
           has_pool: boolean | null
           housing_type: string | null
           id: string
+          invoice_ai_confidence: string | null
+          invoice_ai_extracted: Json | null
           invoice_photo_url: string | null
           lat: number | null
           lng: number | null
@@ -57,6 +83,8 @@ export type Database = {
           has_pool?: boolean | null
           housing_type?: string | null
           id?: string
+          invoice_ai_confidence?: string | null
+          invoice_ai_extracted?: Json | null
           invoice_photo_url?: string | null
           lat?: number | null
           lng?: number | null
@@ -83,6 +111,8 @@ export type Database = {
           has_pool?: boolean | null
           housing_type?: string | null
           id?: string
+          invoice_ai_confidence?: string | null
+          invoice_ai_extracted?: Json | null
           invoice_photo_url?: string | null
           lat?: number | null
           lng?: number | null
