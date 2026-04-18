@@ -22,40 +22,58 @@ export const Step1Consumption = () => {
   };
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+
+    let files = Array.from(fileList).slice(0, 3);
     const MAX = 10 * 1024 * 1024;
-    if (file.size > MAX) {
+    const tooBig = files.find((f) => f.size > MAX);
+    if (tooBig) {
       toast.error(
-        "Votre fichier dépasse 10 MB. Merci de compresser le PDF ou de prendre une photo plus légère.",
+        "Un fichier dépasse 10 MB. Merci de compresser le PDF ou de prendre une photo plus légère.",
       );
       if (fileRef.current) fileRef.current.value = "";
       return;
     }
+    if (fileList.length > 3) {
+      toast.info("Maximum 3 factures — seules les 3 premières seront analysées.");
+    }
+
     setUploading(true);
     try {
-      const ext =
-        file.name.split(".").pop() ||
-        (file.type === "application/pdf" ? "pdf" : "jpg");
-      const path = `invoices/${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage
-        .from("lead-uploads")
-        .upload(path, file, {
-          upsert: false,
-          contentType: file.type || undefined,
-        });
-      if (error) throw error;
-      const { data } = supabase.storage.from("lead-uploads").getPublicUrl(path);
+      const uploaded: { file: File; url: string }[] = [];
+      for (const file of files) {
+        const ext =
+          file.name.split(".").pop() ||
+          (file.type === "application/pdf" ? "pdf" : "jpg");
+        const path = `invoices/${crypto.randomUUID()}.${ext}`;
+        const { error } = await supabase.storage
+          .from("lead-uploads")
+          .upload(path, file, {
+            upsert: false,
+            contentType: file.type || undefined,
+          });
+        if (error) throw error;
+        const { data } = supabase.storage.from("lead-uploads").getPublicUrl(path);
+        uploaded.push({ file, url: data.publicUrl });
+      }
+
       setConsumption({
         method: "photo",
-        invoiceFile: file,
-        invoiceUrl: data.publicUrl,
+        invoiceFile: uploaded[0].file,
+        invoiceUrl: uploaded[0].url,
+        invoiceFiles: uploaded.map((u) => u.file),
+        invoiceUrls: uploaded.map((u) => u.url),
         aiStatus: "loading",
         aiExtracted: null,
         aiConfidence: null,
       });
-      toast.success("Fichier reçu");
-      analyzeInvoice(data.publicUrl);
+      toast.success(
+        uploaded.length === 1
+          ? "Fichier reçu"
+          : `${uploaded.length} factures reçues`,
+      );
+      analyzeInvoices(uploaded.map((u) => u.url));
     } catch (err) {
       toast.error("Échec de l'upload, réessayez.");
       console.error(err);
