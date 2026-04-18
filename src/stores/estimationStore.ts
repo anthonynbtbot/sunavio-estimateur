@@ -48,6 +48,10 @@ export interface EstimationState {
     roiYears: number | null;
     isViable: boolean;
     viabilityMessage: string | null;
+    v1: any | null;
+    v2: any | null;
+    technicalNotes: string[];
+    personalizedMessage: string | null;
   };
   contact: {
     fullName: string;
@@ -105,6 +109,10 @@ const initialState: EstimationState = {
     roiYears: null,
     isViable: true,
     viabilityMessage: null,
+    v1: null,
+    v2: null,
+    technicalNotes: [],
+    personalizedMessage: null,
   },
   contact: { fullName: "", phone: "", email: "" },
   leadId: null,
