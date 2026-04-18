@@ -1,4 +1,6 @@
 // Google Places Autocomplete proxy, restricted to Morocco.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { checkRateLimit, getClientIp } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +18,17 @@ function json(body: unknown, status = 200) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  const ip = getClientIp(req);
+  const rl = await checkRateLimit(supabase, ip, "places-autocomplete", 60);
+  if (!rl.allowed) {
+    return json({ success: false, error: "rate_limit", retry_after: rl.retryAfter }, 429);
+  }
+
   const apiKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
   if (!apiKey) return json({ success: false, error: "missing_api_key" }, 500);
 
@@ -24,6 +37,7 @@ Deno.serve(async (req) => {
     const input: string = (body?.input ?? "").toString().trim();
     const sessionToken: string | undefined = body?.session_token;
     if (input.length < 2) return json({ success: true, predictions: [] });
+    if (input.length > 250) return json({ success: false, error: "invalid_input" }, 400);
 
     const params = new URLSearchParams({
       input,
@@ -31,7 +45,9 @@ Deno.serve(async (req) => {
       components: "country:ma",
       language: "fr",
     });
-    if (sessionToken) params.set("sessiontoken", sessionToken);
+    if (sessionToken && typeof sessionToken === "string" && sessionToken.length <= 100) {
+      params.set("sessiontoken", sessionToken);
+    }
 
     const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?${params}`;
     const res = await fetch(url);

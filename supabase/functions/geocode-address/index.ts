@@ -1,6 +1,8 @@
 // Geocode an address or Plus Code using Google Geocoding API.
 // Also supports reverse geocoding via { lat, lng } input.
 // Also supports place_id lookup via { place_id } input.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { checkRateLimit, getClientIp } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,6 +41,17 @@ function extractCity(addressComponents: any[]): string | null {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  const ip = getClientIp(req);
+  const rl = await checkRateLimit(supabase, ip, "geocode-address", 60);
+  if (!rl.allowed) {
+    return json({ success: false, error: "rate_limit", retry_after: rl.retryAfter }, 429);
+  }
+
   const apiKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
   if (!apiKey) return json({ success: false, error: "missing_api_key" }, 500);
 
@@ -50,14 +63,17 @@ Deno.serve(async (req) => {
     let inputType: "plus_code" | "address" | "reverse" | "place_id" = "address";
 
     if (place_id && typeof place_id === "string") {
+      if (place_id.length > 200) return json({ success: false, error: "invalid_input" }, 400);
       url = `https://maps.googleapis.com/maps/api/geocode/json?place_id=${encodeURIComponent(place_id)}&key=${apiKey}&language=fr&region=ma`;
       inputType = "place_id";
     } else if (typeof lat === "number" && typeof lng === "number") {
       url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}&language=fr&region=ma`;
       inputType = "reverse";
     } else if (typeof input === "string" && input.trim().length > 0) {
-      inputType = detectInputType(input);
-      url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(input.trim())}&key=${apiKey}&language=fr&region=ma`;
+      const trimmed = input.trim();
+      if (trimmed.length > 250) return json({ success: false, error: "invalid_input" }, 400);
+      inputType = detectInputType(trimmed);
+      url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(trimmed)}&key=${apiKey}&language=fr&region=ma`;
     } else {
       return json({ success: false, error: "invalid_input" }, 400);
     }
