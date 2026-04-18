@@ -8,16 +8,20 @@ const corsHeaders = {
 
 const DAILY_LIMIT = Number(Deno.env.get("DAILY_AI_LIMIT") ?? "500");
 const MODEL = "google/gemini-2.5-pro";
+const MAX_FILES = 3;
 
 const SYSTEM_PROMPT = `Tu es un assistant spécialisé dans l'extraction d'informations des factures d'électricité de l'Office National de l'Électricité et de l'Eau Potable (ONEE) du Maroc.
 
-On va te fournir la photo d'une facture ONEE. Tu dois extraire les informations suivantes :
-- Les consommations en kWh des 3 derniers mois (ou moins si la facture n'en contient pas assez)
-- La consommation annuelle totale si elle est visible
-- Le type de contrat (Résidentiel BT, Tarif social, Professionnel BT, Moyenne tension, ou Autre)
-- La puissance souscrite en kVA
+On va te fournir UNE OU PLUSIEURS factures ONEE (entre 1 et 3 fichiers, photos ou PDF). Chaque fichier correspond à un mois de facturation différent. Ton objectif est d'extraire les informations consolidées suivantes :
+
+- Les consommations en kWh des 3 derniers mois (ou autant que possible si moins de 3 factures fournies). Trie-les chronologiquement (le plus ancien en premier, le plus récent en dernier).
+- La consommation annuelle totale si elle est visible sur l'une des factures
+- Le type de contrat (Résidentiel BT, Tarif social, Professionnel BT, Moyenne tension, ou Autre) — il devrait être identique sur toutes les factures
+- La puissance souscrite en kVA — identique sur toutes les factures
 - Le nom du titulaire du contrat (si visible)
 - La ville du compteur (si visible)
+
+IMPORTANT : si tu reçois plusieurs factures, fusionne intelligemment les informations. Pour les consommations mensuelles, prends UNE valeur de consommation par facture (la consommation du mois facturé, pas un index cumulé).
 
 Réponds UNIQUEMENT avec un objet JSON strict, sans Markdown, sans backticks, sans commentaire. Format exact attendu :
 
@@ -30,22 +34,23 @@ Réponds UNIQUEMENT avec un objet JSON strict, sans Markdown, sans backticks, sa
   "subscribed_power_kva": 9,
   "holder_name": "NEBOUT Anthony",
   "city": "Marrakech",
-  "notes": "Facture lisible, 3 derniers mois extraits avec certitude"
+  "notes": "3 factures analysées, valeurs cohérentes"
 }
 
-Si tu ne peux pas lire l'image correctement (floue, mal cadrée, pas une facture ONEE, document illisible) :
+Si tu ne peux pas lire les images correctement (floues, mal cadrées, pas des factures ONEE, documents illisibles) :
 
 {
   "success": false,
   "confidence": "low",
-  "reason": "Image floue, impossible de distinguer les chiffres de consommation",
-  "suggestion": "Prendre une photo plus nette, avec un bon éclairage, sans reflet sur le papier"
+  "reason": "Images floues, impossible de distinguer les chiffres de consommation",
+  "suggestion": "Prendre des photos plus nettes, avec un bon éclairage, sans reflet sur le papier"
 }
 
 Règles importantes :
 - Si tu n'es pas sûr d'une valeur, mets-la mais baisse la confidence à "medium" ou "low"
-- Si un champ n'est pas visible, mets null (sauf monthly_kwh qui peut être un tableau vide)
+- Si un champ n'est pas visible, mets null (sauf monthly_kwh qui peut contenir moins de 3 valeurs)
 - Ne JAMAIS inventer des valeurs. Mieux vaut null que faux.
+- Si plusieurs factures donnent des valeurs contradictoires pour contract_type ou subscribed_power_kva, prends celle de la facture la plus récente et baisse la confidence à "medium".
 - La confidence "high" est réservée aux cas où tu es absolument certain de toutes les valeurs extraites.`;
 
 function json(body: unknown, status = 200) {
@@ -58,12 +63,10 @@ function json(body: unknown, status = 200) {
 function parseAiJson(raw: string): any | null {
   if (!raw) return null;
   let s = raw.trim();
-  // Strip markdown fences if any
   s = s.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
   try {
     return JSON.parse(s);
   } catch {
-    // Try to find first { ... last }
     const start = s.indexOf("{");
     const end = s.lastIndexOf("}");
     if (start !== -1 && end !== -1 && end > start) {
@@ -77,6 +80,26 @@ function parseAiJson(raw: string): any | null {
   }
 }
 
+async function fetchAsDataUrl(
+  url: string,
+): Promise<{ dataUrl: string; mimeType: string }> {
+  let mimeType = "image/jpeg";
+  try {
+    const fileRes = await fetch(url);
+    if (fileRes.ok) {
+      mimeType = fileRes.headers.get("content-type") ?? mimeType;
+      const buf = new Uint8Array(await fileRes.arrayBuffer());
+      let bin = "";
+      for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+      const b64 = btoa(bin);
+      return { dataUrl: `data:${mimeType};base64,${b64}`, mimeType };
+    }
+  } catch (e) {
+    console.warn("Could not pre-fetch file, falling back to URL", e);
+  }
+  return { dataUrl: url, mimeType };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -88,9 +111,19 @@ Deno.serve(async (req) => {
   );
 
   try {
-    const { imageUrl } = await req.json();
-    if (!imageUrl || typeof imageUrl !== "string") {
-      return json({ success: false, error: "imageUrl is required" }, 400);
+    const body = await req.json();
+    // Accept either imageUrls: string[] or legacy imageUrl: string
+    let urls: string[] = [];
+    if (Array.isArray(body?.imageUrls)) {
+      urls = body.imageUrls.filter((u: unknown) => typeof u === "string");
+    } else if (typeof body?.imageUrl === "string") {
+      urls = [body.imageUrl];
+    }
+    if (urls.length === 0) {
+      return json({ success: false, error: "imageUrls is required" }, 400);
+    }
+    if (urls.length > MAX_FILES) {
+      urls = urls.slice(0, MAX_FILES);
     }
 
     // Daily cap check
@@ -123,28 +156,21 @@ Deno.serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Fetch the file to determine MIME and re-encode as data URL (works for images & PDFs)
-    let dataUrl = imageUrl;
-    let mimeType = "image/jpeg";
-    try {
-      const fileRes = await fetch(imageUrl);
-      if (fileRes.ok) {
-        mimeType = fileRes.headers.get("content-type") ?? mimeType;
-        const buf = new Uint8Array(await fileRes.arrayBuffer());
-        // base64 encode
-        let bin = "";
-        for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
-        const b64 = btoa(bin);
-        dataUrl = `data:${mimeType};base64,${b64}`;
-      }
-    } catch (e) {
-      console.warn("Could not pre-fetch file, falling back to URL", e);
-    }
+    // Fetch all files in parallel
+    const fetched = await Promise.all(urls.map((u) => fetchAsDataUrl(u)));
+    const hasPdf = fetched.some((f) => f.mimeType === "application/pdf");
 
     const userPrompt =
-      mimeType === "application/pdf"
-        ? "Analyse ce PDF de facture ONEE et extrais les informations demandées."
-        : "Analyse cette facture ONEE et extrais les informations demandées.";
+      urls.length === 1
+        ? hasPdf
+          ? "Analyse ce PDF de facture ONEE et extrais les informations demandées."
+          : "Analyse cette facture ONEE et extrais les informations demandées."
+        : `Analyse ces ${urls.length} factures ONEE (chacune correspond à un mois différent) et fournis les informations consolidées.`;
+
+    const userContent: any[] = [{ type: "text", text: userPrompt }];
+    for (const f of fetched) {
+      userContent.push({ type: "image_url", image_url: { url: f.dataUrl } });
+    }
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -158,13 +184,7 @@ Deno.serve(async (req) => {
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: userPrompt },
-              { type: "image_url", image_url: { url: dataUrl } },
-            ],
-          },
+          { role: "user", content: userContent },
         ],
       }),
     });
@@ -213,9 +233,14 @@ Deno.serve(async (req) => {
     const data = await aiRes.json();
     const raw = data?.choices?.[0]?.message?.content ?? "";
     const finishReason = data?.choices?.[0]?.finish_reason;
-    console.log("AI raw length:", raw.length, "finish_reason:", finishReason);
-    console.log("AI raw response (first 800):", raw.slice(0, 800));
-    console.log("AI raw response (last 300):", raw.slice(-300));
+    console.log(
+      "AI raw length:",
+      raw.length,
+      "finish_reason:",
+      finishReason,
+      "files:",
+      urls.length,
+    );
     const parsed = parseAiJson(raw);
     if (!parsed) console.error("Parse failed for raw:", raw);
 
