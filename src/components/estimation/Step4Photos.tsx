@@ -77,7 +77,6 @@ export const Step4Photos = () => {
         ref={roofRef}
         type="file"
         accept="image/*"
-        capture="environment"
         multiple
         className="hidden"
         onChange={handleRoof}
@@ -86,7 +85,6 @@ export const Step4Photos = () => {
         ref={meterRef}
         type="file"
         accept="image/*"
-        capture="environment"
         className="hidden"
         onChange={handleMeter}
       />
@@ -127,7 +125,7 @@ export const Step4Photos = () => {
           ))}
         </div>
         <p className="text-xs text-muted-foreground mt-3">
-          Minimum 2 photos. Prenez-les si possible avec un bon éclairage, sous différents angles.
+          Prenez vos photos directement ou sélectionnez-les depuis votre galerie. Minimum 2 photos, idéalement avec un bon éclairage et sous différents angles.
         </p>
       </div>
 
@@ -137,7 +135,7 @@ export const Step4Photos = () => {
           <span className="text-muted-foreground text-sm">(optionnel)</span>
         </h3>
         <p className="text-xs text-muted-foreground mb-3">
-          Aide à vérifier la puissance souscrite.
+          Photo existante ou nouvelle prise de vue. Aide à vérifier la puissance souscrite.
         </p>
         <div className="w-32">
           {photos.meterUrl ? (
