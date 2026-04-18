@@ -198,10 +198,10 @@ export const Step1Consumption = () => {
           </div>
           <Camera className="size-7 text-primary mb-3" />
           <h3 className="font-display text-xl text-foreground mb-1">
-            Ajouter ma facture (photo ou PDF)
+            Ajouter mes factures (jusqu'à 3)
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Photographiez votre facture ONEE, sélectionnez une photo existante, ou importez le PDF reçu par email. Nous extrairons automatiquement les informations essentielles.
+            Importez 1 à 3 factures ONEE (photos ou PDF). Plus vous en ajoutez, plus l'analyse est précise. Astuce : maintenez Ctrl/Cmd pour en sélectionner plusieurs d'un coup.
           </p>
         </button>
 
