@@ -127,21 +127,63 @@ export const Step1Consumption = () => {
         </button>
       </div>
 
-      {/* Photo confirmation */}
+      {/* Photo confirmation + AI status */}
       {consumption.method === "photo" && consumption.invoiceUrl && (
-        <SunavioCard className="mb-8 p-5 flex items-center gap-4">
+        <SunavioCard className="mb-8 p-5 flex items-start gap-4">
           <img
             src={consumption.invoiceUrl}
             alt="Facture"
-            className="w-20 h-20 object-cover border border-border"
+            className="w-20 h-20 object-cover border border-border shrink-0"
           />
           <div className="flex-1">
             <div className="flex items-center gap-2 text-primary text-sm mb-1">
               <Check className="size-4" /> Photo reçue
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Nos ingénieurs l'analyseront en même temps que votre dossier. Pour l'instant, confirmez vos consommations approximatives ci-dessous.
-            </p>
+
+            {consumption.aiStatus === "loading" && (
+              <p className="text-sm text-muted-foreground leading-relaxed flex items-center gap-2">
+                <Loader2 className="size-4 text-primary animate-spin" />
+                Lecture de votre facture en cours…
+              </p>
+            )}
+
+            {consumption.aiStatus === "success" && consumption.aiConfidence === "high" && (
+              <div className="text-sm leading-relaxed">
+                <div className="flex items-center gap-2 text-primary mb-1">
+                  <CheckCircle2 className="size-4" />
+                  Nous avons lu votre facture.
+                </div>
+                <p className="text-muted-foreground">
+                  Vérifiez les valeurs ci-dessous et ajustez si nécessaire.
+                </p>
+              </div>
+            )}
+
+            {consumption.aiStatus === "success" &&
+              (consumption.aiConfidence === "medium" || consumption.aiConfidence === "low") && (
+                <div className="text-sm leading-relaxed">
+                  <div className="flex items-center gap-2 text-primary mb-1">
+                    <AlertCircle className="size-4" />
+                    Lecture partielle de votre facture.
+                  </div>
+                  <p className="text-muted-foreground">
+                    Certaines valeurs ne sont pas parfaitement claires. Merci de les vérifier attentivement.
+                  </p>
+                </div>
+              )}
+
+            {consumption.aiStatus === "failed" && (
+              <div className="text-sm leading-relaxed">
+                <div className="flex items-center gap-2 text-primary mb-1">
+                  <AlertCircle className="size-4" />
+                  Nous n'avons pas pu lire votre facture clairement.
+                </div>
+                <p className="text-muted-foreground">
+                  {consumption.aiExtracted?.suggestion ??
+                    "Merci de saisir vos consommations ci-dessous."}
+                </p>
+              </div>
+            )}
           </div>
         </SunavioCard>
       )}
