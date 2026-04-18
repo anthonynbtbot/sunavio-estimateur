@@ -148,6 +148,37 @@ export const AdminLeadDetail = () => {
   const invoice = lead.invoice_ai_extracted;
   const dirty = status !== lead.status || (notes || "") !== (lead.notes ?? "");
 
+  const ageMs = Date.now() - new Date(lead.created_at).getTime();
+  const olderThan2min = ageMs > 2 * 60 * 1000;
+  const hasEnoughPhotos = (lead.roof_photos_urls?.length ?? 0) >= 2;
+  const analysisFailedOrMissing = !roof || roof?.success === false;
+  const canRelaunch = analysisFailedOrMissing && olderThan2min && hasEnoughPhotos;
+
+  const handleRelaunchRoof = async () => {
+    if (!lead || reanalyzing) return;
+    setReanalyzing(true);
+    const { data, error } = await supabase.functions.invoke("analyze-roof", {
+      body: { leadId: lead.id, photoPaths: lead.roof_photos_urls },
+    });
+    setReanalyzing(false);
+    if (error) {
+      toast.error(error.message ?? "Échec de la relance");
+      return;
+    }
+    if (data?.success === false) {
+      toast.error(`Analyse échouée : ${data.reason ?? "raison inconnue"}`);
+      return;
+    }
+    toast.success("Analyse relancée avec succès");
+    const { data: refreshed } = await supabase
+      .from("leads")
+      .select("*")
+      .eq("id", lead.id)
+      .maybeSingle();
+    if (refreshed) setLead(refreshed as Lead);
+  };
+
+
   return (
     <main className="min-h-screen bg-background pb-12">
       <header className="border-b border-border bg-card">
