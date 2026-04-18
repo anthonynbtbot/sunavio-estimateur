@@ -14,6 +14,9 @@ export interface EstimationState {
     annualKwh: number | null;
     contractType: string | null;
     subscribedPower: number | null;
+    aiExtracted: any | null;
+    aiConfidence: "high" | "medium" | "low" | null;
+    aiStatus: "idle" | "loading" | "success" | "failed";
   };
   location: {
     address: string;
@@ -76,6 +79,9 @@ const initialState: EstimationState = {
     annualKwh: null,
     contractType: null,
     subscribedPower: null,
+    aiExtracted: null,
+    aiConfidence: null,
+    aiStatus: "idle",
   },
   location: { address: "", city: "", lat: null, lng: null },
   housing: {
