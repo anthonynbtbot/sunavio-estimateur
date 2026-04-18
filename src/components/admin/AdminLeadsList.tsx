@@ -23,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatKwc, formatDh } from "@/lib/formatNumber";
 
 type LeadRow = {
   id: string;
