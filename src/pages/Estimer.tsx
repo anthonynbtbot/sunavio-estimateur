@@ -44,7 +44,7 @@ const Estimer = () => {
   const canStep2 = location.lat !== null && location.lng !== null;
   const canStep3 =
     housing.type !== null && housing.roofType !== null && (housing.roofSurface ?? 0) > 0;
-  const canStep4 = photos.roofUrls.length >= 2;
+  const canStep4 = true;
   const canStep5 =
     acceptTerms &&
     contact.fullName.trim().length >= 2 &&
