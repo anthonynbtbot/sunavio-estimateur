@@ -26,6 +26,7 @@ const Estimer = () => {
     contact,
     setResults,
     setLeadId,
+    setErrorFieldId,
   } = useEstimationStore();
 
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -88,6 +89,18 @@ const Estimer = () => {
         if (mapping.returnToStep && mapping.returnToStep !== currentStep) {
           setStep(mapping.returnToStep);
           window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        if (mapping.fieldId) {
+          setErrorFieldId(mapping.fieldId);
+          setTimeout(() => {
+            const el = document.getElementById(mapping.fieldId!);
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth", block: "center" });
+              if (typeof (el as HTMLElement).focus === "function") {
+                try { (el as HTMLElement).focus({ preventScroll: true }); } catch {}
+              }
+            }
+          }, 350);
         }
         setSubmitting(false);
         return;

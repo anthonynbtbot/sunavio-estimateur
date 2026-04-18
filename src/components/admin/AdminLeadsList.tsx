@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
-import { Loader2, LogOut, Search } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, LogOut, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatKwc, formatDh } from "@/lib/formatNumber";
+import { formatNumber } from "@/lib/formatNumber";
+import { DataValue } from "@/components/ui/DataValue";
+import { cn } from "@/lib/utils";
 
 type LeadRow = {
   id: string;
@@ -40,6 +42,8 @@ type LeadRow = {
   invoice_ai_confidence: string | null;
   roof_ai_analysis: any;
 };
+
+const PAGE_SIZE = 20;
 
 const roofAiBadge = (l: LeadRow) => {
   const ageMs = Date.now() - new Date(l.created_at).getTime();
@@ -66,6 +70,14 @@ const STATUS_OPTIONS = [
   { value: "lost", label: "Perdu" },
 ];
 
+const STATUS_BADGES = [
+  { value: "new", label: "Nouveaux" },
+  { value: "contacted", label: "Contactés" },
+  { value: "study_sent", label: "Étude envoyée" },
+  { value: "won", label: "Gagnés" },
+  { value: "lost", label: "Perdus" },
+];
+
 const statusLabel = (s: string) =>
   STATUS_OPTIONS.find((o) => o.value === s)?.label ?? s;
 
@@ -76,64 +88,122 @@ const statusVariant = (s: string): "default" | "secondary" | "outline" | "destru
   return "outline";
 };
 
+type SortColumn = "created_at" | "full_name" | "recommended_kwc" | "estimated_budget_min";
+type SortDir = "asc" | "desc";
+
 export const AdminLeadsList = () => {
   const [leads, setLeads] = useState<LeadRow[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [cityFilter, setCityFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [sortCol, setSortCol] = useState<SortColumn>("created_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [allCities, setAllCities] = useState<string[]>([]);
 
   useEffect(() => {
     document.title = "Leads — Sunavio Admin";
   }, []);
 
+  // Reset to page 1 whenever filters/sort change
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, cityFilter, sortCol, sortDir]);
+
+  // Load status counts + cities once
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("leads").select("status, city").limit(2000);
+      if (data) {
+        const counts: Record<string, number> = {};
+        const citySet = new Set<string>();
+        data.forEach((r: any) => {
+          counts[r.status] = (counts[r.status] ?? 0) + 1;
+          if (r.city) citySet.add(r.city);
+        });
+        setStatusCounts(counts);
+        setAllCities(Array.from(citySet).sort());
+      }
+    })();
+  }, [leads.length]);
+
+  // Load paginated leads
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const { data, error } = await supabase
+      const start = (page - 1) * PAGE_SIZE;
+      const end = start + PAGE_SIZE - 1;
+      let q = supabase
         .from("leads")
         .select(
           "id, created_at, full_name, phone, email, city, status, recommended_kwc, estimated_budget_min, estimated_budget_max, roof_ai_confidence, invoice_ai_confidence, roof_ai_analysis",
+          { count: "exact" },
         )
-        .order("created_at", { ascending: false })
-        .limit(500);
+        .order(sortCol, { ascending: sortDir === "asc", nullsFirst: false });
+
+      if (statusFilter !== "all") q = q.eq("status", statusFilter);
+      if (cityFilter !== "all") q = q.eq("city", cityFilter);
+      if (search.trim()) {
+        const s = `%${search.trim()}%`;
+        q = q.or(`full_name.ilike.${s},phone.ilike.${s},email.ilike.${s},city.ilike.${s}`);
+      }
+
+      const { data, count, error } = await q.range(start, end);
       if (error) {
         toast.error("Erreur de chargement des leads");
         console.error(error);
       } else {
         setLeads(data ?? []);
+        setTotalCount(count ?? 0);
       }
       setLoading(false);
     };
     load();
-  }, []);
+  }, [page, sortCol, sortDir, statusFilter, cityFilter, search]);
 
-  const cities = useMemo(() => {
-    const set = new Set<string>();
-    leads.forEach((l) => l.city && set.add(l.city));
-    return Array.from(set).sort();
-  }, [leads]);
-
-  const filtered = useMemo(() => {
-    return leads.filter((l) => {
-      if (statusFilter !== "all" && l.status !== statusFilter) return false;
-      if (cityFilter !== "all" && l.city !== cityFilter) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        const hay = [l.full_name, l.phone, l.email, l.city]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [leads, search, statusFilter, cityFilter]);
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const grandTotal = useMemo(
+    () => Object.values(statusCounts).reduce((a, b) => a + b, 0),
+    [statusCounts],
+  );
+  const filtered = leads;
+  const filteringActive =
+    statusFilter !== "all" || cityFilter !== "all" || !!search.trim();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     toast.success("Déconnecté");
   };
+
+  const toggleSort = (col: SortColumn) => {
+    if (sortCol === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortCol(col);
+      setSortDir(col === "full_name" ? "asc" : "desc");
+    }
+  };
+
+  const SortHead = ({ col, children }: { col: SortColumn; children: React.ReactNode }) => (
+    <TableHead>
+      <button
+        type="button"
+        onClick={() => toggleSort(col)}
+        className="inline-flex items-center gap-1 hover:text-primary transition-colors"
+      >
+        {children}
+        {sortCol === col &&
+          (sortDir === "asc" ? (
+            <ChevronUp className="h-3.5 w-3.5 text-primary" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5 text-primary" />
+          ))}
+      </button>
+    </TableHead>
+  );
 
   return (
     <main className="min-h-screen bg-background">
@@ -142,7 +212,9 @@ export const AdminLeadsList = () => {
           <div>
             <h1 className="text-xl font-semibold">Leads</h1>
             <p className="text-sm text-muted-foreground">
-              {leads.length} au total · {filtered.length} affichés
+              {filteringActive
+                ? `${totalCount} leads affichés sur ${grandTotal} au total`
+                : `${grandTotal} leads au total`}
             </p>
           </div>
           <Button variant="ghost" size="sm" onClick={handleSignOut}>
@@ -152,6 +224,37 @@ export const AdminLeadsList = () => {
       </header>
 
       <section className="max-w-7xl mx-auto px-6 py-6 space-y-4">
+        {/* Status badges (cliquables) */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setStatusFilter("all")}
+            className={cn(
+              "px-3 py-1 text-xs rounded-full border transition-colors",
+              statusFilter === "all"
+                ? "bg-primary/15 border-primary text-primary"
+                : "border-border text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Tous · {grandTotal}
+          </button>
+          {STATUS_BADGES.map((s) => (
+            <button
+              key={s.value}
+              type="button"
+              onClick={() => setStatusFilter(s.value)}
+              className={cn(
+                "px-3 py-1 text-xs rounded-full border transition-colors",
+                statusFilter === s.value
+                  ? "bg-primary/15 border-primary text-primary"
+                  : "border-border text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {s.label} · {statusCounts[s.value] ?? 0}
+            </button>
+          ))}
+        </div>
+
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -180,7 +283,7 @@ export const AdminLeadsList = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes villes</SelectItem>
-              {cities.map((c) => (
+              {allCities.map((c) => (
                 <SelectItem key={c} value={c}>
                   {c}
                 </SelectItem>
@@ -198,12 +301,12 @@ export const AdminLeadsList = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Nom</TableHead>
+                  <SortHead col="created_at">Date</SortHead>
+                  <SortHead col="full_name">Nom</SortHead>
                   <TableHead>Ville</TableHead>
                   <TableHead>Téléphone</TableHead>
-                  <TableHead>kWc</TableHead>
-                  <TableHead>Budget</TableHead>
+                  <SortHead col="recommended_kwc">kWc</SortHead>
+                  <SortHead col="estimated_budget_min">Budget</SortHead>
                   <TableHead>IA toit</TableHead>
                   <TableHead>Statut</TableHead>
                 </TableRow>
@@ -231,12 +334,32 @@ export const AdminLeadsList = () => {
                     <TableCell>{l.city ?? "—"}</TableCell>
                     <TableCell className="text-sm">{l.phone ?? "—"}</TableCell>
                     <TableCell>
-                      {l.recommended_kwc ? formatKwc(l.recommended_kwc) : "—"}
+                      {l.recommended_kwc ? (
+                        <DataValue value={formatNumber(l.recommended_kwc, 1)} unit="kWc" size="sm" tone="gold" />
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                     <TableCell className="text-sm">
-                      {l.estimated_budget_min && l.estimated_budget_max
-                        ? `${formatDh(l.estimated_budget_min)} – ${formatDh(l.estimated_budget_max)}`
-                        : "—"}
+                      {l.estimated_budget_min && l.estimated_budget_max ? (
+                        <span className="inline-flex items-center gap-1">
+                          <DataValue
+                            value={formatNumber(Math.round(l.estimated_budget_min))}
+                            unit="DH"
+                            size="sm"
+                            tone="gold"
+                          />
+                          <span className="text-muted-foreground">–</span>
+                          <DataValue
+                            value={formatNumber(Math.round(l.estimated_budget_max))}
+                            unit="DH"
+                            size="sm"
+                            tone="gold"
+                          />
+                        </span>
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                     <TableCell>
                       {(() => {
@@ -257,6 +380,33 @@ export const AdminLeadsList = () => {
                 ))}
               </TableBody>
             </Table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between gap-3 pt-2">
+            <p className="text-xs text-muted-foreground">
+              Page {page} sur {totalPages} · {totalCount} résultats
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" /> Précédent
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+              >
+                Suivant <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
           </div>
         )}
       </section>

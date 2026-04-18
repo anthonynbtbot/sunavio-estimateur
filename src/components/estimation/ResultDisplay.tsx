@@ -6,6 +6,7 @@ import { useEstimationStore } from "@/stores/estimationStore";
 import { SunavioCard } from "@/components/sunavio/SunavioCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DataValue } from "@/components/ui/DataValue";
 import { formatNumber, formatKwc, formatKwh, formatDh, formatYears } from "@/lib/formatNumber";
 import { cn } from "@/lib/utils";
 
@@ -119,13 +120,16 @@ export const ResultDisplay = () => {
               Votre installation recommandée
             </h2>
             <div className="grid sm:grid-cols-3 gap-6">
-              <Kpi value={formatKwc(kwc)} label="Puissance recommandée" />
               <Kpi
-                value={`${formatKwh(annualProd)}/an`}
+                value={<DataValue value={formatNumber(kwc, 1)} unit="kWc" size="xl" tone="gold" />}
+                label="Puissance recommandée"
+              />
+              <Kpi
+                value={<DataValue value={formatNumber(Math.round(annualProd))} unit="kWh/an" size="xl" tone="gold" />}
                 label="Production estimée"
               />
               <Kpi
-                value={`${formatNumber(panels)} panneaux`}
+                value={<DataValue value={formatNumber(panels)} unit="panneaux" size="xl" tone="gold" />}
                 label="Jinko Tiger Neo 630W"
               />
             </div>
@@ -158,9 +162,8 @@ export const ResultDisplay = () => {
               </ul>
               <p className="text-xs text-muted-foreground">
                 Capacité de stockage recommandée :{" "}
-                <span className="text-primary">
-                  {v2.battery_capacity_kwh} kWh ({v2.nb_battery_modules} modules WeCo 5K3 EVO)
-                </span>
+                <DataValue value={formatNumber(v2.battery_capacity_kwh, 1)} unit="kWh" size="sm" tone="gold" />
+                <span className="ml-2 text-muted-foreground">({v2.nb_battery_modules} modules WeCo 5K3 EVO)</span>
               </p>
             </SunavioCard>
           )}
@@ -170,8 +173,11 @@ export const ResultDisplay = () => {
             <h2 className="font-display text-xl md:text-2xl text-foreground mb-4">
               Votre investissement
             </h2>
-            <p className="font-display text-2xl md:text-3xl text-primary mb-3">
-              De {formatDh(budgetMin)} à {formatDh(budgetMax)} HT
+            <p className="mb-3">
+              <span className="text-muted-foreground text-sm mr-2">De</span>
+              <DataValue value={formatNumber(Math.round(budgetMin))} unit="DH" size="lg" tone="gold" />
+              <span className="text-muted-foreground text-sm mx-2">à</span>
+              <DataValue value={formatNumber(Math.round(budgetMax))} unit="DH HT" size="lg" tone="gold" />
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Prix indicatif incluant équipements premium, installation, monitoring,
@@ -184,8 +190,9 @@ export const ResultDisplay = () => {
             <h2 className="font-display text-xl md:text-2xl text-foreground mb-4">
               Votre rentabilité
             </h2>
-            <p className="font-display text-3xl md:text-4xl text-primary mb-3">
-              ~{formatYears(roi)}
+            <p className="mb-3">
+              <span className="text-muted-foreground text-sm mr-1">~</span>
+              <DataValue value={formatNumber(roi, 1)} unit="ans" size="xl" tone="gold" />
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
               {version === "v2"
@@ -274,11 +281,9 @@ const VersionTab = ({
   </button>
 );
 
-const Kpi = ({ value, label }: { value: string; label: string }) => (
+const Kpi = ({ value, label }: { value: React.ReactNode; label: string }) => (
   <div className="text-center sm:text-left">
-    <p className="font-display text-2xl md:text-3xl text-primary leading-tight">
-      {value}
-    </p>
+    <div className="leading-tight">{value}</div>
     <p className="text-xs text-muted-foreground uppercase tracking-wide mt-2">
       {label}
     </p>

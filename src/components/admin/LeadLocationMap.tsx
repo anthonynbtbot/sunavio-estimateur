@@ -1,13 +1,15 @@
-import { useCallback, useState } from "react";
-import { GoogleMap, MarkerF, useJsApiLoader } from "@react-google-maps/api";
+import { useCallback, useEffect, useState } from "react";
+import { GoogleMap, MarkerF, StreetViewPanorama, useJsApiLoader } from "@react-google-maps/api";
 import { OpenLocationCode } from "open-location-code";
 import { Copy, ExternalLink, Loader2, Navigation } from "lucide-react";
 import { toast } from "sonner";
 import { useGoogleMapsKey } from "@/hooks/useGoogleMapsKey";
 import { SUNAVIO_MAP_STYLE, GOLD_MARKER_SVG } from "@/lib/mapStyle";
+import { cn } from "@/lib/utils";
 
 const olc = new OpenLocationCode();
 const MAP_LIBRARIES: ("places")[] = ["places"];
+type ViewMode = "plan" | "satellite" | "streetview";
 
 interface Props {
   lat: number | null;
@@ -34,7 +36,24 @@ const LeadLocationMapInner = ({ lat, lng, address, apiKey }: Props & { apiKey: s
     id: "google-map-script",
   });
   const keyLoading = false;
-  const [satellite, setSatellite] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("plan");
+  const [streetViewAvailable, setStreetViewAvailable] = useState<boolean | null>(null);
+
+  // When entering Street View, probe panorama availability
+  useEffect(() => {
+    if (viewMode !== "streetview" || lat == null || lng == null || !window.google?.maps) return;
+    setStreetViewAvailable(null);
+    const sv = new google.maps.StreetViewService();
+    sv.getPanorama({ location: { lat, lng }, radius: 80 }, (_data, status) => {
+      const ok = status === google.maps.StreetViewStatus.OK;
+      setStreetViewAvailable(ok);
+      if (!ok) {
+        toast.info("Street View non disponible pour cette adresse.");
+        const t = setTimeout(() => setViewMode("plan"), 3000);
+        return () => clearTimeout(t);
+      }
+    });
+  }, [viewMode, lat, lng]);
 
   const copy = useCallback((text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -66,14 +85,14 @@ const LeadLocationMapInner = ({ lat, lng, address, apiKey }: Props & { apiKey: s
       {address && (
         <p className="text-sm text-foreground font-medium">{address}</p>
       )}
-      <div className="border border-border overflow-hidden">
+      <div className="border border-border overflow-hidden relative">
         <GoogleMap
           mapContainerStyle={{ width: "100%", height: "400px" }}
           center={{ lat, lng }}
           zoom={16}
           options={{
-            styles: satellite ? undefined : SUNAVIO_MAP_STYLE,
-            mapTypeId: satellite ? "hybrid" : "roadmap",
+            styles: viewMode === "plan" ? SUNAVIO_MAP_STYLE : undefined,
+            mapTypeId: viewMode === "satellite" ? "hybrid" : "roadmap",
             streetViewControl: false,
             mapTypeControl: false,
             fullscreenControl: true,
@@ -88,7 +107,26 @@ const LeadLocationMapInner = ({ lat, lng, address, apiKey }: Props & { apiKey: s
               anchor: new google.maps.Point(18, 48),
             }}
           />
+          {viewMode === "streetview" && streetViewAvailable !== false && (
+            <StreetViewPanorama
+              options={{
+                position: { lat, lng },
+                visible: true,
+                pov: { heading: 0, pitch: 0 },
+                zoom: 1,
+                enableCloseButton: false,
+                fullscreenControl: true,
+                panControl: true,
+                zoomControl: true,
+              }}
+            />
+          )}
         </GoogleMap>
+        {viewMode === "streetview" && streetViewAvailable === false && (
+          <div className="absolute inset-0 bg-background/85 flex items-center justify-center text-sm text-muted-foreground">
+            Street View non disponible pour cette adresse.
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
@@ -102,13 +140,23 @@ const LeadLocationMapInner = ({ lat, lng, address, apiKey }: Props & { apiKey: s
             <span className="font-mono text-foreground">{plusCode}</span>
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setSatellite((s) => !s)}
-          className="text-xs text-primary hover:underline"
-        >
-          {satellite ? "Vue plan" : "Vue satellite"}
-        </button>
+        <div className="inline-flex border border-border overflow-hidden">
+          {(["plan", "satellite", "streetview"] as ViewMode[]).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setViewMode(m)}
+              className={cn(
+                "px-3 py-1.5 text-xs transition-colors",
+                viewMode === m
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {m === "plan" ? "Plan" : m === "satellite" ? "Satellite" : "Street View"}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">

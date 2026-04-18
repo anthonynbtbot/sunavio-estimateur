@@ -35,7 +35,7 @@ export const Step3Housing = () => {
 
       <div className="space-y-10">
         {/* Q1 */}
-        <div>
+        <div id="housing-type">
           <div className="flex items-center gap-2 mb-4">
             <Home className="size-5 text-primary" />
             <h3 className="font-display text-lg text-foreground">Type de logement</h3>
@@ -60,7 +60,7 @@ export const Step3Housing = () => {
         </div>
 
         {/* Q2 */}
-        <div>
+        <div id="roof-type">
           <div className="flex items-center gap-2 mb-4">
             <Home className="size-5 text-primary" />
             <h3 className="font-display text-lg text-foreground">Type de toit</h3>

@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { useSignedUrls } from "@/hooks/useSignedUrls";
 import { PhotoBlock } from "./PhotoBlock";
 import { LeadLocationMap } from "./LeadLocationMap";
-import { formatKwc, formatKwh, formatDh, formatYears } from "@/lib/formatNumber";
+import { formatKwc, formatKwh, formatDh, formatYears, formatNumber } from "@/lib/formatNumber";
+import { DataValue } from "@/components/ui/DataValue";
 import {
   Select,
   SelectContent,
@@ -223,21 +224,34 @@ export const AdminLeadDetail = () => {
               <CardTitle className="text-base">Estimation calculée</CardTitle>
             </CardHeader>
             <CardContent className="text-sm">
-              <Field label="Puissance recommandée" value={lead.recommended_kwc ? formatKwc(lead.recommended_kwc) : null} />
+              <Field
+                label="Puissance recommandée"
+                value={lead.recommended_kwc ? <DataValue value={formatNumber(lead.recommended_kwc, 1)} unit="kWc" size="sm" tone="gold" /> : null}
+              />
               <Field
                 label="Production estimée"
-                value={lead.estimated_production_kwh ? `${formatKwh(lead.estimated_production_kwh)}/an` : null}
+                value={lead.estimated_production_kwh ? <><DataValue value={formatNumber(Math.round(lead.estimated_production_kwh))} unit="kWh" size="sm" tone="gold" /><span className="text-muted-foreground">/an</span></> : null}
               />
               <Field
                 label="Budget"
                 value={
-                  lead.estimated_budget_min && lead.estimated_budget_max
-                    ? `${formatDh(lead.estimated_budget_min)} – ${formatDh(lead.estimated_budget_max)}`
-                    : null
+                  lead.estimated_budget_min && lead.estimated_budget_max ? (
+                    <span className="inline-flex items-center gap-1">
+                      <DataValue value={formatNumber(Math.round(lead.estimated_budget_min))} unit="DH" size="sm" tone="gold" />
+                      <span className="text-muted-foreground">–</span>
+                      <DataValue value={formatNumber(Math.round(lead.estimated_budget_max))} unit="DH" size="sm" tone="gold" />
+                    </span>
+                  ) : null
                 }
               />
-              <Field label="ROI" value={lead.estimated_roi_years ? formatYears(lead.estimated_roi_years) : null} />
-              <Field label="Conso annuelle" value={lead.consumption_kwh_year ? formatKwh(lead.consumption_kwh_year) : null} />
+              <Field
+                label="ROI"
+                value={lead.estimated_roi_years ? <DataValue value={formatNumber(lead.estimated_roi_years, 1)} unit="ans" size="sm" tone="gold" /> : null}
+              />
+              <Field
+                label="Conso annuelle"
+                value={lead.consumption_kwh_year ? <DataValue value={formatNumber(Math.round(lead.consumption_kwh_year))} unit="kWh" size="sm" tone="gold" /> : null}
+              />
               {roof?.sizing_adjustment?.applied && (
                 <div className="mt-3 p-3 rounded-md border border-border bg-muted/40 text-xs space-y-1">
                   <p className="font-medium text-foreground">
@@ -266,6 +280,61 @@ export const AdminLeadDetail = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Premium V2 (batterie) */}
+        {lead.v2_battery_capacity_kwh && lead.v2_battery_modules && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Version Premium (V2 — avec batterie)</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm">
+              <Field
+                label="Capacité batterie"
+                value={<DataValue value={formatNumber(lead.v2_battery_capacity_kwh, 1)} unit="kWh" size="sm" tone="gold" />}
+              />
+              <Field
+                label="Modules WeCo 5K3 EVO"
+                value={<DataValue value={lead.v2_battery_modules} unit="modules" size="sm" tone="gold" />}
+              />
+              <Field
+                label="Budget V2"
+                value={
+                  lead.v2_budget_min && lead.v2_budget_max ? (
+                    <span className="inline-flex items-center gap-1">
+                      <DataValue value={formatNumber(Math.round(lead.v2_budget_min))} unit="DH" size="sm" tone="gold" />
+                      <span className="text-muted-foreground">–</span>
+                      <DataValue value={formatNumber(Math.round(lead.v2_budget_max))} unit="DH" size="sm" tone="gold" />
+                    </span>
+                  ) : null
+                }
+              />
+              <Field
+                label="ROI V2"
+                value={lead.v2_roi_years ? <DataValue value={formatNumber(lead.v2_roi_years, 1)} unit="ans" size="sm" tone="gold" /> : null}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Message personnalisé envoyé au prospect */}
+        {lead.personalized_message && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Message envoyé au prospect</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="relative pl-5">
+                <div className="absolute left-0 top-1 bottom-1 w-[3px] bg-primary rounded-full" />
+                <p className="font-display italic text-base leading-relaxed text-foreground">
+                  {lead.personalized_message}
+                </p>
+                <p className="text-xs text-muted-foreground mt-3 text-right">
+                  Anthony NEBOUT · Co-fondateur SUNAVIO
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
