@@ -63,6 +63,13 @@ type Lead = {
   roof_ai_confidence: string | null;
   status: string;
   notes: string | null;
+  v2_battery_capacity_kwh: number | null;
+  v2_battery_modules: number | null;
+  v2_budget_min: number | null;
+  v2_budget_max: number | null;
+  v2_roi_years: number | null;
+  personalized_message: string | null;
+  dimensioning_ai_result: any;
 };
 
 const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
