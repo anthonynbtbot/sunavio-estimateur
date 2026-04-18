@@ -41,7 +41,7 @@ export const Step1Consumption = () => {
 
     setUploading(true);
     try {
-      const uploaded: { file: File; url: string }[] = [];
+      const uploaded: { file: File; path: string }[] = [];
       for (const file of files) {
         const ext =
           file.name.split(".").pop() ||
@@ -54,16 +54,15 @@ export const Step1Consumption = () => {
             contentType: file.type || undefined,
           });
         if (error) throw error;
-        const { data } = supabase.storage.from("lead-uploads").getPublicUrl(path);
-        uploaded.push({ file, url: data.publicUrl });
+        uploaded.push({ file, path });
       }
 
       setConsumption({
         method: "photo",
         invoiceFile: uploaded[0].file,
-        invoiceUrl: uploaded[0].url,
+        invoiceUrl: uploaded[0].path,
         invoiceFiles: uploaded.map((u) => u.file),
-        invoiceUrls: uploaded.map((u) => u.url),
+        invoiceUrls: uploaded.map((u) => u.path),
         aiStatus: "loading",
         aiExtracted: null,
         aiConfidence: null,
@@ -73,7 +72,7 @@ export const Step1Consumption = () => {
           ? "Fichier reçu"
           : `${uploaded.length} factures reçues`,
       );
-      analyzeInvoices(uploaded.map((u) => u.url));
+      analyzeInvoices(uploaded.map((u) => u.path));
     } catch (err) {
       toast.error("Échec de l'upload, réessayez.");
       console.error(err);
@@ -82,10 +81,10 @@ export const Step1Consumption = () => {
     }
   };
 
-  const analyzeInvoices = async (fileUrls: string[]) => {
+  const analyzeInvoices = async (paths: string[]) => {
     try {
       const { data, error } = await supabase.functions.invoke("analyze-invoice", {
-        body: { imageUrls: fileUrls },
+        body: { imagePaths: paths },
       });
       console.log("[analyze-invoice] response:", { data, error });
       if (error) throw error;
