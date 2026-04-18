@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const DAILY_LIMIT = Number(Deno.env.get("DAILY_AI_LIMIT") ?? "500");
 const MODEL = "google/gemini-2.5-pro";
-const MAX_PHOTOS = 6;
+const MAX_PHOTOS = 4;
 
 const SYSTEM_PROMPT = `Tu es un expert en installations photovoltaïques résidentielles au Maroc, spécialisé dans l'analyse de photos de toitures pour évaluer leur potentiel solaire.
 
@@ -119,6 +119,19 @@ function parseAiJson(raw: string): any | null {
   }
 }
 
+function bytesToBase64(bytes: Uint8Array): string {
+  // Process in chunks to avoid creating huge intermediate strings.
+  const CHUNK = 0x8000;
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    bin += String.fromCharCode.apply(
+      null,
+      bytes.subarray(i, i + CHUNK) as unknown as number[],
+    );
+  }
+  return btoa(bin);
+}
+
 async function fetchAsDataUrl(
   url: string,
 ): Promise<{ dataUrl: string; mimeType: string } | null> {
@@ -127,9 +140,7 @@ async function fetchAsDataUrl(
     if (!r.ok) return null;
     const mimeType = r.headers.get("content-type") ?? "image/jpeg";
     const buf = new Uint8Array(await r.arrayBuffer());
-    let bin = "";
-    for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
-    return { dataUrl: `data:${mimeType};base64,${btoa(bin)}`, mimeType };
+    return { dataUrl: `data:${mimeType};base64,${bytesToBase64(buf)}`, mimeType };
   } catch (e) {
     console.warn("fetchAsDataUrl failed", url, e);
     return null;
@@ -177,9 +188,11 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const fetched = (await Promise.all(photoUrls.map(fetchAsDataUrl))).filter(
-      (f): f is { dataUrl: string; mimeType: string } => f !== null,
-    );
+    const fetched: { dataUrl: string; mimeType: string }[] = [];
+    for (const url of photoUrls) {
+      const f = await fetchAsDataUrl(url);
+      if (f) fetched.push(f);
+    }
 
     if (fetched.length === 0) {
       await supabase.from("ai_call_log").insert({
