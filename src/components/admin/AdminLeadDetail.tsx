@@ -298,14 +298,15 @@ export const AdminLeadDetail = () => {
               <p className="text-sm text-muted-foreground">Aucune analyse disponible.</p>
             )}
             {lead.invoice_photo_url && (
-              <a
-                href={lead.invoice_photo_url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary text-sm inline-flex items-center gap-1 mt-3"
-              >
-                Ouvrir la facture <ExternalLink className="h-3 w-3" />
-              </a>
+              <div className="mt-4 max-w-sm">
+                <PhotoBlock
+                  path={lead.invoice_photo_url}
+                  url={getUrl(lead.invoice_photo_url)}
+                  loading={urlsLoading}
+                  label="Facture ONEE"
+                  allowDownload
+                />
+              </div>
             )}
           </CardContent>
         </Card>
@@ -379,16 +380,39 @@ export const AdminLeadDetail = () => {
 
             {Array.isArray(lead.roof_photos_urls) && lead.roof_photos_urls.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-3">
-                {lead.roof_photos_urls.map((u) => (
-                  <a key={u} href={u} target="_blank" rel="noreferrer" className="block">
-                    <img
-                      src={u}
-                      alt="Photo de toiture du lead"
-                      loading="lazy"
-                      className="w-full h-28 object-cover rounded-md border border-border"
-                    />
-                  </a>
+                {lead.roof_photos_urls.map((p, i) => (
+                  <PhotoBlock
+                    key={p}
+                    path={p}
+                    url={getUrl(p)}
+                    loading={urlsLoading}
+                    label={`Toit ${i + 1}`}
+                  />
                 ))}
+              </div>
+            )}
+
+            {canRelaunch && (
+              <div className="pt-3 border-t border-border mt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRelaunchRoof}
+                  disabled={reanalyzing}
+                  className="border-primary/40 text-primary hover:bg-primary/5"
+                >
+                  {reanalyzing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Analyse en cours…
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Relancer l'analyse IA du toit
+                    </>
+                  )}
+                </Button>
               </div>
             )}
           </CardContent>
