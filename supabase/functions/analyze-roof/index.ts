@@ -188,9 +188,11 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const fetched = (await Promise.all(photoUrls.map(fetchAsDataUrl))).filter(
-      (f): f is { dataUrl: string; mimeType: string } => f !== null,
-    );
+    const fetched: { dataUrl: string; mimeType: string }[] = [];
+    for (const url of photoUrls) {
+      const f = await fetchAsDataUrl(url);
+      if (f) fetched.push(f);
+    }
 
     if (fetched.length === 0) {
       await supabase.from("ai_call_log").insert({
