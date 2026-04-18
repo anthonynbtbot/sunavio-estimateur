@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { downloadFromBucket } from "../_shared/storage.ts";
+import { checkRateLimit, getClientIp } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,11 +10,12 @@ const corsHeaders = {
 
 const DAILY_LIMIT = Number(Deno.env.get("DAILY_AI_LIMIT") ?? "500");
 const MODEL = "google/gemini-2.5-pro";
-const MAX_PHOTOS = 4;
+const MAX_PHOTOS = 5;
+const BUCKET = "lead-uploads";
 
 const SYSTEM_PROMPT = `Tu es un expert en installations photovoltaïques résidentielles au Maroc, spécialisé dans l'analyse de photos de toitures pour évaluer leur potentiel solaire.
 
-On va te fournir entre 1 et 6 photos d'une même toiture (vues différentes : ensemble, détails, angles). Analyse-les conjointement pour produire une évaluation technique complète.
+On va te fournir entre 1 et 5 photos d'une même toiture (vues différentes : ensemble, détails, angles). Analyse-les conjointement pour produire une évaluation technique complète.
 
 Tu dois extraire :
 
@@ -119,34 +122,6 @@ function parseAiJson(raw: string): any | null {
   }
 }
 
-function bytesToBase64(bytes: Uint8Array): string {
-  // Process in chunks to avoid creating huge intermediate strings.
-  const CHUNK = 0x8000;
-  let bin = "";
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    bin += String.fromCharCode.apply(
-      null,
-      bytes.subarray(i, i + CHUNK) as unknown as number[],
-    );
-  }
-  return btoa(bin);
-}
-
-async function fetchAsDataUrl(
-  url: string,
-): Promise<{ dataUrl: string; mimeType: string } | null> {
-  try {
-    const r = await fetch(url);
-    if (!r.ok) return null;
-    const mimeType = r.headers.get("content-type") ?? "image/jpeg";
-    const buf = new Uint8Array(await r.arrayBuffer());
-    return { dataUrl: `data:${mimeType};base64,${bytesToBase64(buf)}`, mimeType };
-  } catch (e) {
-    console.warn("fetchAsDataUrl failed", url, e);
-    return null;
-  }
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -157,19 +132,40 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  // Rate limit (skip if called via service role from pg_net trigger)
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const isServiceCall = serviceKey.length > 0 && authHeader === `Bearer ${serviceKey}`;
+
+  if (!isServiceCall) {
+    const ip = getClientIp(req);
+    const rl = await checkRateLimit(supabase, ip, "analyze-roof");
+    if (!rl.allowed) {
+      return json(
+        { success: false, error: "rate_limit", retry_after: rl.retryAfter },
+        429,
+      );
+    }
+  }
+
   try {
     const body = await req.json();
     const leadId: string | undefined = body?.leadId;
-    let photoUrls: string[] = Array.isArray(body?.photoUrls)
-      ? body.photoUrls.filter((u: unknown) => typeof u === "string")
-      : [];
 
-    if (!leadId || photoUrls.length === 0) {
-      return json({ success: false, error: "leadId and photoUrls required" }, 400);
+    // Accept new `photoPaths` (relative paths) and legacy `photoUrls`
+    let inputs: string[] = [];
+    if (Array.isArray(body?.photoPaths)) {
+      inputs = body.photoPaths.filter((u: unknown) => typeof u === "string");
+    } else if (Array.isArray(body?.photoUrls)) {
+      inputs = body.photoUrls.filter((u: unknown) => typeof u === "string");
     }
-    if (photoUrls.length > MAX_PHOTOS) photoUrls = photoUrls.slice(0, MAX_PHOTOS);
 
-    // Daily cap (shared with analyze-invoice)
+    if (!leadId || inputs.length === 0) {
+      return json({ success: false, error: "leadId and photoPaths required" }, 400);
+    }
+    if (inputs.length > MAX_PHOTOS) inputs = inputs.slice(0, MAX_PHOTOS);
+
+    // Daily cap
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { count } = await supabase
       .from("ai_call_log")
@@ -189,8 +185,8 @@ Deno.serve(async (req) => {
     if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
     const fetched: { dataUrl: string; mimeType: string }[] = [];
-    for (const url of photoUrls) {
-      const f = await fetchAsDataUrl(url);
+    for (const p of inputs) {
+      const f = await downloadFromBucket(supabase, BUCKET, p);
       if (f) fetched.push(f);
     }
 
@@ -215,10 +211,7 @@ Deno.serve(async (req) => {
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 4000,
@@ -243,17 +236,7 @@ Deno.serve(async (req) => {
 
     const data = await aiRes.json();
     const raw = data?.choices?.[0]?.message?.content ?? "";
-    const finishReason = data?.choices?.[0]?.finish_reason;
-    console.log(
-      "AI raw length:",
-      raw.length,
-      "finish_reason:",
-      finishReason,
-      "photos:",
-      fetched.length,
-    );
     const parsed = parseAiJson(raw);
-    if (!parsed) console.error("Parse failed for raw:", raw);
 
     if (!parsed || typeof parsed !== "object") {
       await supabase.from("ai_call_log").insert({
@@ -261,7 +244,6 @@ Deno.serve(async (req) => {
         success: false,
         error_code: "parse_error",
       });
-      // Persist failure so admin sees we tried
       await supabase
         .from("leads")
         .update({
@@ -280,11 +262,7 @@ Deno.serve(async (req) => {
     const confidence = typeof parsed.confidence === "string" ? parsed.confidence : "medium";
 
     // ----- Cap recommended_kwc by AI-detected usable roof surface -----
-    // Densité PV résidentielle : ~6 m² par kWc (panneaux ~630 Wc ≈ 2 m²).
     const M2_PER_KWC = 6;
-
-    // On privilégie la surface installable nette (après obstacles + ombrage),
-    // sinon la surface utile brute.
     const netM2 = Number(parsed?.recommendation?.net_installable_m2);
     const usableM2 = Number(parsed?.geometry?.usable_surface_m2);
     const surfaceM2 = Number.isFinite(netM2) && netM2 > 0
@@ -299,27 +277,18 @@ Deno.serve(async (req) => {
     };
 
     if (surfaceM2 !== null) {
-      // Lis le lead courant pour récupérer les valeurs déjà calculées côté client.
       const { data: lead } = await supabase
         .from("leads")
-        .select(
-          "recommended_kwc, city, consumption_kwh_year, estimated_production_kwh, estimated_budget_min, estimated_budget_max, estimated_roi_years",
-        )
+        .select("recommended_kwc, city")
         .eq("id", leadId)
         .maybeSingle();
 
       const currentKwc = Number(lead?.recommended_kwc ?? 0);
       const maxKwcBySurface = Math.floor((surfaceM2 / M2_PER_KWC) * 10) / 10;
 
-      if (
-        currentKwc > 0 &&
-        maxKwcBySurface > 0 &&
-        maxKwcBySurface < currentKwc
-      ) {
-        // Surface insuffisante → on plafonne la puissance.
+      if (currentKwc > 0 && maxKwcBySurface > 0 && maxKwcBySurface < currentKwc) {
         const city = (lead?.city ?? "").toString();
         const irradiance = city === "Essaouira" ? 1750 : city === "Agadir" ? 1700 : 1650;
-
         const newKwc = maxKwcBySurface;
         const newProduction = Math.round(newKwc * irradiance);
         const newBudgetMin = Math.round(newKwc * 14000);
@@ -334,7 +303,6 @@ Deno.serve(async (req) => {
         updatePayload.estimated_budget_max = newBudgetMax;
         updatePayload.estimated_roi_years = newRoi;
 
-        // Trace dans roof_ai_analysis pour l'admin.
         (parsed as any).sizing_adjustment = {
           applied: true,
           reason: "surface_cap",
@@ -344,17 +312,10 @@ Deno.serve(async (req) => {
           m2_per_kwc: M2_PER_KWC,
         };
         updatePayload.roof_ai_analysis = parsed;
-
-        console.log(
-          `Lead ${leadId}: capped kWc ${currentKwc} → ${newKwc} (surface ${surfaceM2}m²)`,
-        );
       } else {
         (parsed as any).sizing_adjustment = {
           applied: false,
-          reason:
-            currentKwc <= 0
-              ? "no_initial_kwc"
-              : "surface_sufficient",
+          reason: currentKwc <= 0 ? "no_initial_kwc" : "surface_sufficient",
           initial_kwc: currentKwc,
           surface_m2_available: surfaceM2,
           m2_per_kwc: M2_PER_KWC,

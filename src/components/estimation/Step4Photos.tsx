@@ -20,7 +20,8 @@ export const Step4Photos = () => {
       .from("lead-uploads")
       .upload(path, file);
     if (error) throw error;
-    return supabase.storage.from("lead-uploads").getPublicUrl(path).data.publicUrl;
+    // Bucket is now private — return the relative path, not a public URL.
+    return path;
   };
 
   const handleRoof = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,10 +31,10 @@ export const Step4Photos = () => {
     try {
       const remaining = MAX_ROOF - photos.roofUrls.length;
       const toUpload = files.slice(0, remaining);
-      const urls = await Promise.all(toUpload.map((f) => uploadFile(f, "roofs")));
+      const paths = await Promise.all(toUpload.map((f) => uploadFile(f, "roofs")));
       setPhotos({
         roofFiles: [...photos.roofFiles, ...toUpload],
-        roofUrls: [...photos.roofUrls, ...urls],
+        roofUrls: [...photos.roofUrls, ...paths],
       });
     } catch (err) {
       toast.error("Échec de l'upload");
@@ -56,14 +57,20 @@ export const Step4Photos = () => {
     if (!file) return;
     setUploading(true);
     try {
-      const url = await uploadFile(file, "meters");
-      setPhotos({ meterFile: file, meterUrl: url });
+      const path = await uploadFile(file, "meters");
+      setPhotos({ meterFile: file, meterUrl: path });
     } catch (err) {
       toast.error("Échec de l'upload");
       console.error(err);
     } finally {
       setUploading(false);
     }
+  };
+
+  // Local preview from File objects (bucket is private, no public URL).
+  const roofPreview = (i: number): string => {
+    const f = photos.roofFiles[i];
+    return f ? URL.createObjectURL(f) : "";
   };
 
   return (
@@ -106,10 +113,10 @@ export const Step4Photos = () => {
               <span className="text-xs">Ajouter</span>
             </button>
           )}
-          {photos.roofUrls.map((url, i) => (
+          {photos.roofUrls.map((_p, i) => (
             <div key={i} className="relative aspect-square group">
               <img
-                src={url}
+                src={roofPreview(i)}
                 alt={`Toit ${i + 1}`}
                 className="w-full h-full object-cover border border-border"
               />
@@ -141,7 +148,7 @@ export const Step4Photos = () => {
           {photos.meterUrl ? (
             <div className="relative aspect-square">
               <img
-                src={photos.meterUrl}
+                src={photos.meterFile ? URL.createObjectURL(photos.meterFile) : ""}
                 alt="Compteur"
                 className="w-full h-full object-cover border border-border"
               />
