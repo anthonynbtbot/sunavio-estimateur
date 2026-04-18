@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useEstimationStore } from "@/stores/estimationStore";
 import { StepIntro } from "./EstimationLayout";
+import { useErrorHighlight } from "@/hooks/useErrorHighlight";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +18,9 @@ interface Step5Props {
 export const Step5Contact = ({ acceptTerms, setAcceptTerms }: Step5Props) => {
   const { contact, setContact } = useEstimationStore();
   const [rgpdOpen, setRgpdOpen] = useState(false);
+  const nameHl = useErrorHighlight("contact-fullname");
+  const phoneHl = useErrorHighlight("contact-phone");
+  const emailHl = useErrorHighlight("contact-email");
 
   return (
     <>
@@ -30,11 +35,17 @@ export const Step5Contact = ({ acceptTerms, setAcceptTerms }: Step5Props) => {
             Nom complet
           </label>
           <input
+            id="contact-fullname"
             type="text"
             value={contact.fullName}
             onChange={(e) => setContact({ fullName: e.target.value })}
             maxLength={100}
-            className="w-full bg-card border border-border px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+            onFocus={nameHl.onFocus}
+            data-error={nameHl["data-error"]}
+            className={cn(
+              "w-full bg-card border border-border px-4 py-3 text-foreground focus:border-primary focus:outline-none",
+              nameHl.className,
+            )}
           />
         </div>
 
@@ -47,13 +58,19 @@ export const Step5Contact = ({ acceptTerms, setAcceptTerms }: Step5Props) => {
               +212
             </span>
             <input
+              id="contact-phone"
               type="tel"
               inputMode="tel"
               placeholder="6 12 34 56 78"
               value={contact.phone}
               onChange={(e) => setContact({ phone: e.target.value })}
               maxLength={20}
-              className="flex-1 bg-card border border-border px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+              onFocus={phoneHl.onFocus}
+              data-error={phoneHl["data-error"]}
+              className={cn(
+                "flex-1 bg-card border border-border px-4 py-3 text-foreground focus:border-primary focus:outline-none",
+                phoneHl.className,
+              )}
             />
           </div>
         </div>
@@ -63,11 +80,17 @@ export const Step5Contact = ({ acceptTerms, setAcceptTerms }: Step5Props) => {
             Email <span className="italic">— facultatif</span>
           </label>
           <input
+            id="contact-email"
             type="email"
             value={contact.email}
             onChange={(e) => setContact({ email: e.target.value })}
             maxLength={255}
-            className="w-full bg-card border border-border px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+            onFocus={emailHl.onFocus}
+            data-error={emailHl["data-error"]}
+            className={cn(
+              "w-full bg-card border border-border px-4 py-3 text-foreground focus:border-primary focus:outline-none",
+              emailHl.className,
+            )}
           />
         </div>
 
