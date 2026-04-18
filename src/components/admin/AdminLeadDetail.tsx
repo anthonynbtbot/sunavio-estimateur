@@ -93,12 +93,14 @@ const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
 
 export const AdminLeadDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [lead, setLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("new");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [reanalyzing, setReanalyzing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const allPaths = useMemo(
     () =>
