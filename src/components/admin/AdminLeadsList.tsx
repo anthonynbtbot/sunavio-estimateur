@@ -114,6 +114,7 @@ export const AdminLeadsList = () => {
   const [sortCol, setSortCol] = useState<SortColumn>("created_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [allCities, setAllCities] = useState<string[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Leads — Sunavio Admin";
