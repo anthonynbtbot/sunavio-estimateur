@@ -189,6 +189,20 @@ export const AdminLeadsList = () => {
     toast.success("Déconnecté");
   };
 
+  const handleDelete = async (leadId: string) => {
+    setDeletingId(leadId);
+    const { error } = await supabase.from("leads").delete().eq("id", leadId);
+    setDeletingId(null);
+    if (error) {
+      toast.error("Échec de la suppression");
+      console.error(error);
+      return;
+    }
+    toast.success("Lead supprimé");
+    setLeads((prev) => prev.filter((l) => l.id !== leadId));
+    setTotalCount((c) => Math.max(0, c - 1));
+  };
+
   const toggleSort = (col: SortColumn) => {
     if (sortCol === col) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
