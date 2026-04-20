@@ -154,7 +154,7 @@ export const AdminLeadDetail = () => {
   const handleDelete = async () => {
     if (!id || deleting) return;
     setDeleting(true);
-    const { error } = await supabase.from("leads").delete().eq("id", id);
+    const { error } = await deleteLeadWithFiles(id);
     setDeleting(false);
     if (error) {
       toast.error("Échec de la suppression");
