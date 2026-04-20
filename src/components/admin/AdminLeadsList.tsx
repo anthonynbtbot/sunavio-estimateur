@@ -37,6 +37,7 @@ import {
 import { formatNumber } from "@/lib/formatNumber";
 import { DataValue } from "@/components/ui/DataValue";
 import { cn } from "@/lib/utils";
+import { deleteLeadWithFiles } from "@/lib/deleteLead";
 
 type LeadRow = {
   id: string;

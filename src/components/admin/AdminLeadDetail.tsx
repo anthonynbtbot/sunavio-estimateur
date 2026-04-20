@@ -24,6 +24,7 @@ import { PhotoBlock } from "./PhotoBlock";
 import { LeadLocationMap } from "./LeadLocationMap";
 import { formatKwc, formatKwh, formatDh, formatYears, formatNumber } from "@/lib/formatNumber";
 import { DataValue } from "@/components/ui/DataValue";
+import { deleteLeadWithFiles } from "@/lib/deleteLead";
 import {
   Select,
   SelectContent,
