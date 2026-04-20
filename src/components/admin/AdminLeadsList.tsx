@@ -37,6 +37,7 @@ import {
 import { formatNumber } from "@/lib/formatNumber";
 import { DataValue } from "@/components/ui/DataValue";
 import { cn } from "@/lib/utils";
+import { deleteLeadWithFiles } from "@/lib/deleteLead";
 
 type LeadRow = {
   id: string;
@@ -193,7 +194,7 @@ export const AdminLeadsList = () => {
 
   const handleDelete = async (leadId: string) => {
     setDeletingId(leadId);
-    const { error } = await supabase.from("leads").delete().eq("id", leadId);
+    const { error } = await deleteLeadWithFiles(leadId);
     setDeletingId(null);
     if (error) {
       toast.error("Échec de la suppression");

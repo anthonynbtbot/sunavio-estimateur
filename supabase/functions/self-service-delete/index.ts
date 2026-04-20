@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
 
     const { data: lead, error: lookupError } = await supabase
       .from("leads")
-      .select("id")
+      .select("id, invoice_photo_url, roof_photos_urls")
       .eq("self_service_token", token)
       .maybeSingle();
 
@@ -56,6 +56,28 @@ Deno.serve(async (req) => {
       return json({ success: false, error: "not_found" }, 404);
     }
 
+    // Step 1: clean up storage files via the Storage API (DB triggers cannot
+    // delete from storage.objects directly).
+    const filePaths: string[] = [];
+    if (typeof lead.invoice_photo_url === "string" && lead.invoice_photo_url.length > 0) {
+      filePaths.push(lead.invoice_photo_url);
+    }
+    if (Array.isArray(lead.roof_photos_urls)) {
+      for (const p of lead.roof_photos_urls) {
+        if (typeof p === "string" && p.length > 0) filePaths.push(p);
+      }
+    }
+    if (filePaths.length > 0) {
+      const { error: storageError } = await supabase.storage
+        .from("lead-uploads")
+        .remove(filePaths);
+      if (storageError) {
+        // Log but do not block the deletion of the lead row itself.
+        console.error("self-service-delete storage cleanup error", storageError);
+      }
+    }
+
+    // Step 2: delete the lead row
     const { error: deleteError } = await supabase
       .from("leads")
       .delete()
