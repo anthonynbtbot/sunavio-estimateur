@@ -126,12 +126,12 @@ const RgpdContent = () => (
         <h2 className="font-semibold">Responsable de traitement</h2>
         <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1.5 text-sm">
           <div><dt className="inline text-muted-foreground">Raison sociale : </dt><dd className="inline font-medium">SUNAVIO SARL</dd></div>
-          <div><dt className="inline text-muted-foreground">Siège : </dt><dd className="inline font-medium">Marrakech, Maroc</dd></div>
-          <div><dt className="inline text-muted-foreground">ICE : </dt><dd className="inline font-medium">à compléter</dd></div>
-          <div><dt className="inline text-muted-foreground">RC : </dt><dd className="inline font-medium">à compléter</dd></div>
-          <div><dt className="inline text-muted-foreground">IF : </dt><dd className="inline font-medium">à compléter</dd></div>
-          <div><dt className="inline text-muted-foreground">DPO / Contact : </dt><dd className="inline font-medium">contact@sunavio.ma</dd></div>
-          <div><dt className="inline text-muted-foreground">Déclaration CNDP : </dt><dd className="inline font-medium">en cours</dd></div>
+          <div><dt className="inline text-muted-foreground">Siège : </dt><dd className="inline font-medium">Villa 7 Résidence Safaa Ouidane, 40000 Marrakech, Maroc</dd></div>
+          <div><dt className="inline text-muted-foreground">ICE : </dt><dd className="inline font-medium">003721552000008</dd></div>
+          <div><dt className="inline text-muted-foreground">RC : </dt><dd className="inline font-medium">164901 Marrakech</dd></div>
+          <div><dt className="inline text-muted-foreground">IF : </dt><dd className="inline font-medium">66967281</dd></div>
+          <div><dt className="inline text-muted-foreground">DPO / Contact : </dt><dd className="inline font-medium">sunavio.contact@gmail.com</dd></div>
+          <div><dt className="inline text-muted-foreground">Déclaration CNDP : </dt><dd className="inline font-medium">en cours de dépôt</dd></div>
           <div><dt className="inline text-muted-foreground">Dernière mise à jour : </dt><dd className="inline font-medium">{new Date().toLocaleDateString("fr-FR")}</dd></div>
         </dl>
       </Card>
