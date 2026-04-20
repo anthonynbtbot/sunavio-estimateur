@@ -30,6 +30,7 @@ const Estimer = () => {
   } = useEstimationStore();
 
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptContact, setAcceptContact] = useState(false);
   const [calculating, setCalculating] = useState(false);
   const [calcDone, setCalcDone] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -47,6 +48,7 @@ const Estimer = () => {
   const canStep4 = true;
   const canStep5 =
     acceptTerms &&
+    acceptContact &&
     contact.fullName.trim().length >= 2 &&
     contact.phone.trim().length >= 6;
 
@@ -230,7 +232,12 @@ const Estimer = () => {
       {currentStep === 3 && <Step3Housing />}
       {currentStep === 4 && <Step4Photos />}
       {currentStep === 5 && (
-        <Step5Contact acceptTerms={acceptTerms} setAcceptTerms={setAcceptTerms} />
+        <Step5Contact
+          acceptTerms={acceptTerms}
+          setAcceptTerms={setAcceptTerms}
+          acceptContact={acceptContact}
+          setAcceptContact={setAcceptContact}
+        />
       )}
     </EstimationLayout>
   );

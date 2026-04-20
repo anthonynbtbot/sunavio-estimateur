@@ -1,4 +1,5 @@
 import { Logo } from "./Logo";
+import { Link } from "react-router-dom";
 
 export const Footer = () => (
   <footer className="bg-background border-t border-transparent" id="contact">
@@ -37,19 +38,24 @@ export const Footer = () => (
         <h4 className="font-display text-base text-foreground mb-4">Informations</h4>
         <ul className="space-y-2 text-sm text-muted-foreground">
           <li>
-            <a href="#" className="hover:text-foreground transition-colors">
+            <Link to="/mentions-legales" className="hover:text-foreground transition-colors">
               Mentions légales
-            </a>
+            </Link>
           </li>
           <li>
-            <a href="#" className="hover:text-foreground transition-colors">
+            <Link to="/politique-confidentialite" className="hover:text-foreground transition-colors">
               Politique de confidentialité
-            </a>
+            </Link>
           </li>
           <li>
-            <a href="#" className="hover:text-foreground transition-colors">
-              CGU
-            </a>
+            <Link to="/conditions-generales" className="hover:text-foreground transition-colors">
+              Conditions Générales
+            </Link>
+          </li>
+          <li>
+            <Link to="/cookies" className="hover:text-foreground transition-colors">
+              Cookies
+            </Link>
           </li>
         </ul>
       </div>
