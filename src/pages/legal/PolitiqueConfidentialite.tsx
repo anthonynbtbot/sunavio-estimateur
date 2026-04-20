@@ -11,9 +11,9 @@ const PolitiqueConfidentialite = () => (
     </p>
     <p>
       <strong>Statut de conformité CNDP (Maroc) :</strong> Ce traitement de données
-      personnelles fait l'objet d'une déclaration auprès de la Commission Nationale de
-      contrôle de la protection des Données à caractère Personnel (CNDP). Le récépissé
-      sera publié sur cette page dès son obtention.
+      personnelles fait actuellement l'objet d'un dépôt de déclaration auprès de la
+      Commission Nationale de contrôle de la protection des Données à caractère
+      Personnel (CNDP). Le récépissé sera publié sur cette page dès son obtention.
     </p>
 
     <h2>1. Responsable du traitement</h2>
