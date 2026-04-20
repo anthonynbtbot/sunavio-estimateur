@@ -1,1 +1,7 @@
 project_id = "wzwwnlsdxpvckkpqmijr"
+
+[functions.self-service-delete]
+verify_jwt = false
+
+[functions.self-service-export]
+verify_jwt = false
