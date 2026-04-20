@@ -16,6 +16,7 @@ import ConditionsGenerales from "./pages/legal/ConditionsGenerales.tsx";
 import Cookies from "./pages/legal/Cookies.tsx";
 import MeDelete from "./pages/me/Delete.tsx";
 import MeExport from "./pages/me/Export.tsx";
+import Rgpd from "./pages/admin/Rgpd.tsx";
 import { CookieBanner } from "./components/legal/CookieBanner.tsx";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/leads/:id" element={<AdminLead />} />
+          <Route path="/admin/rgpd" element={<Rgpd />} />
           <Route path="/mentions-legales" element={<MentionsLegales />} />
           <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
           <Route path="/conditions-generales" element={<ConditionsGenerales />} />

@@ -13,6 +13,39 @@ import { useEstimationStore } from "@/stores/estimationStore";
 import { supabase } from "@/integrations/supabase/client";
 import { getErrorMapping } from "@/lib/validationErrors";
 
+// Email de confirmation : désactivé tant que le domaine notify.sunavio.ma n'est pas vérifié.
+// Quand le domaine sera actif (3-5 jours) :
+//  1) scaffold transactional email + template "lead-confirmation"
+//  2) passer EMAIL_CONFIRMATION_ENABLED à true
+//  3) le bloc ci-dessous enverra automatiquement le récap + liens self-service.
+const EMAIL_CONFIRMATION_ENABLED = false;
+
+async function sendLeadConfirmationEmail(params: {
+  email: string;
+  fullName: string;
+  leadId: string;
+  token: string;
+}) {
+  if (!EMAIL_CONFIRMATION_ENABLED) return;
+  try {
+    await supabase.functions.invoke("send-transactional-email", {
+      body: {
+        templateName: "lead-confirmation",
+        recipientEmail: params.email,
+        idempotencyKey: `lead-confirm-${params.leadId}`,
+        templateData: {
+          name: params.fullName,
+          exportUrl: `${window.location.origin}/me/export?token=${params.token}`,
+          deleteUrl: `${window.location.origin}/me/delete?token=${params.token}`,
+        },
+      },
+    });
+  } catch (e) {
+    // Non bloquant : l'utilisateur a déjà sa réponse à l'écran.
+    console.warn("lead confirmation email failed", e);
+  }
+}
+
 const Estimer = () => {
   const navigate = useNavigate();
   const {
@@ -87,7 +120,12 @@ const Estimer = () => {
       });
 
       if (error) throw error;
-      const result = rpcData as { success?: boolean; id?: string; error?: string } | null;
+      const result = rpcData as {
+        success?: boolean;
+        id?: string;
+        token?: string;
+        error?: string;
+      } | null;
       if (!result?.success) {
         const code = result?.error ?? "";
         const mapping = getErrorMapping(code);
@@ -113,6 +151,16 @@ const Estimer = () => {
       }
       const newLeadId = result.id as string;
       setLeadId(newLeadId);
+
+      // Envoi best-effort de l'email de confirmation (no-op tant que le flag est false).
+      if (contact.email && result.token) {
+        sendLeadConfirmationEmail({
+          email: contact.email,
+          fullName: contact.fullName,
+          leadId: newLeadId,
+          token: result.token,
+        });
+      }
 
       // 2. Start the calculation overlay (loops until done)
       setCalculating(true);
