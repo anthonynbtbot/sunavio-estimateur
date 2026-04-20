@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useEstimationStore } from "@/stores/estimationStore";
 import { StepIntro } from "./EstimationLayout";
 import { useErrorHighlight } from "@/hooks/useErrorHighlight";
@@ -13,9 +14,16 @@ import {
 interface Step5Props {
   acceptTerms: boolean;
   setAcceptTerms: (v: boolean) => void;
+  acceptContact: boolean;
+  setAcceptContact: (v: boolean) => void;
 }
 
-export const Step5Contact = ({ acceptTerms, setAcceptTerms }: Step5Props) => {
+export const Step5Contact = ({
+  acceptTerms,
+  setAcceptTerms,
+  acceptContact,
+  setAcceptContact,
+}: Step5Props) => {
   const { contact, setContact } = useEstimationStore();
   const [rgpdOpen, setRgpdOpen] = useState(false);
   const nameHl = useErrorHighlight("contact-fullname");
@@ -94,17 +102,48 @@ export const Step5Contact = ({ acceptTerms, setAcceptTerms }: Step5Props) => {
           />
         </div>
 
-        <label className="flex items-start gap-3 cursor-pointer pt-2">
-          <input
-            type="checkbox"
-            checked={acceptTerms}
-            onChange={(e) => setAcceptTerms(e.target.checked)}
-            className="mt-1 size-4 accent-primary shrink-0"
-          />
-          <span className="text-sm text-muted-foreground leading-relaxed">
-            J'accepte que SUNAVIO utilise ces informations pour me transmettre mon étude solaire et me recontacter.
-          </span>
-        </label>
+        <div className="space-y-3 pt-2">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={acceptTerms}
+              onChange={(e) => setAcceptTerms(e.target.checked)}
+              className="mt-1 size-4 accent-primary shrink-0"
+            />
+            <span className="text-sm text-muted-foreground leading-relaxed">
+              J'ai lu et j'accepte les{" "}
+              <Link
+                to="/conditions-generales"
+                target="_blank"
+                className="text-primary underline hover:text-primary-hover"
+              >
+                Conditions Générales d'Utilisation
+              </Link>{" "}
+              et la{" "}
+              <Link
+                to="/politique-confidentialite"
+                target="_blank"
+                className="text-primary underline hover:text-primary-hover"
+              >
+                Politique de confidentialité
+              </Link>{" "}
+              de SUNAVIO.
+            </span>
+          </label>
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={acceptContact}
+              onChange={(e) => setAcceptContact(e.target.checked)}
+              className="mt-1 size-4 accent-primary shrink-0"
+            />
+            <span className="text-sm text-muted-foreground leading-relaxed">
+              J'accepte d'être contacté par SUNAVIO SARL par téléphone, WhatsApp ou
+              email concernant mon projet d'installation solaire.
+            </span>
+          </label>
+        </div>
 
         <button
           type="button"
