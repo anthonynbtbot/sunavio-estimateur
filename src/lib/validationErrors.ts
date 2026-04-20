@@ -6,7 +6,9 @@ export type ValidationErrorCode =
   | "invalid_consumption"
   | "invalid_housing_type"
   | "invalid_roof_type"
-  | "rate_limit_submit";
+  | "rate_limit_submit"
+  | "terms_not_accepted"
+  | "contact_not_accepted";
 
 export interface ErrorMapping {
   message: string;
@@ -64,6 +66,16 @@ export const VALIDATION_ERROR_MAP: Record<ValidationErrorCode, ErrorMapping> = {
   rate_limit_submit: {
     message:
       "Trop de tentatives depuis votre connexion. Merci de patienter une heure avant de refaire une estimation.",
+    returnToStep: 5,
+  },
+  terms_not_accepted: {
+    message:
+      "Merci d'accepter les Conditions Générales et la Politique de confidentialité pour soumettre votre estimation.",
+    returnToStep: 5,
+  },
+  contact_not_accepted: {
+    message:
+      "Merci d'accepter d'être contacté par SUNAVIO pour finaliser votre estimation.",
     returnToStep: 5,
   },
 };

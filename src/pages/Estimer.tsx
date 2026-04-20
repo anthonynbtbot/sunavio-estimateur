@@ -80,6 +80,8 @@ const Estimer = () => {
             invoice_ai_confidence: consumption.aiConfidence ?? null,
             roof_photos_urls: photos.roofUrls,
             status: "new",
+            accept_terms: acceptTerms,
+            accept_contact: acceptContact,
           },
         },
       });

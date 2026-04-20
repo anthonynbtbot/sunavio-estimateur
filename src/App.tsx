@@ -14,6 +14,8 @@ import MentionsLegales from "./pages/legal/MentionsLegales.tsx";
 import PolitiqueConfidentialite from "./pages/legal/PolitiqueConfidentialite.tsx";
 import ConditionsGenerales from "./pages/legal/ConditionsGenerales.tsx";
 import Cookies from "./pages/legal/Cookies.tsx";
+import MeDelete from "./pages/me/Delete.tsx";
+import MeExport from "./pages/me/Export.tsx";
 import { CookieBanner } from "./components/legal/CookieBanner.tsx";
 
 const queryClient = new QueryClient();
@@ -35,6 +37,8 @@ const App = () => (
           <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
           <Route path="/conditions-generales" element={<ConditionsGenerales />} />
           <Route path="/cookies" element={<Cookies />} />
+          <Route path="/me/delete" element={<MeDelete />} />
+          <Route path="/me/export" element={<MeExport />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

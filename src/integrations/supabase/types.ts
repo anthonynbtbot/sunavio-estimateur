@@ -64,6 +64,8 @@ export type Database = {
       }
       leads: {
         Row: {
+          accepted_contact_at: string | null
+          accepted_terms_at: string | null
           address: string | null
           city: string | null
           consumption_kwh_year: number | null
@@ -93,6 +95,7 @@ export type Database = {
           roof_ai_confidence: string | null
           roof_photos_urls: string[] | null
           roof_type: string | null
+          self_service_token: string
           status: string
           v2_battery_capacity_kwh: number | null
           v2_battery_modules: number | null
@@ -101,6 +104,8 @@ export type Database = {
           v2_roi_years: number | null
         }
         Insert: {
+          accepted_contact_at?: string | null
+          accepted_terms_at?: string | null
           address?: string | null
           city?: string | null
           consumption_kwh_year?: number | null
@@ -130,6 +135,7 @@ export type Database = {
           roof_ai_confidence?: string | null
           roof_photos_urls?: string[] | null
           roof_type?: string | null
+          self_service_token?: string
           status?: string
           v2_battery_capacity_kwh?: number | null
           v2_battery_modules?: number | null
@@ -138,6 +144,8 @@ export type Database = {
           v2_roi_years?: number | null
         }
         Update: {
+          accepted_contact_at?: string | null
+          accepted_terms_at?: string | null
           address?: string | null
           city?: string | null
           consumption_kwh_year?: number | null
@@ -167,6 +175,7 @@ export type Database = {
           roof_ai_confidence?: string | null
           roof_photos_urls?: string[] | null
           roof_type?: string | null
+          self_service_token?: string
           status?: string
           v2_battery_capacity_kwh?: number | null
           v2_battery_modules?: number | null
