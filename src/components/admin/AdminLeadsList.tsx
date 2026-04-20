@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ImageOff, Loader2, LogOut, Search, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ImageOff, Loader2, LogOut, Search, ShieldCheck, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -245,9 +245,16 @@ export const AdminLeadsList = () => {
                 : `${grandTotal} leads au total`}
             </p>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleSignOut}>
-            <LogOut className="h-4 w-4 mr-2" /> Déconnexion
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/admin/rgpd">
+                <ShieldCheck className="h-4 w-4 mr-2" /> RGPD
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4 mr-2" /> Déconnexion
+            </Button>
+          </div>
         </div>
       </header>
 
