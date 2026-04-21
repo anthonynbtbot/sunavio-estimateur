@@ -5,7 +5,7 @@ import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
 
 const links = [
-  { label: "Accueil", href: "/" },
+  { label: "Accueil", href: "https://sunavio.com", external: true },
   { label: "Nos projets", href: "/#projets" },
   { label: "Contact", href: "/#contact" },
 ];
@@ -38,6 +38,7 @@ export const Navbar = () => {
               <li key={l.href}>
                 <a
                   href={l.href}
+                  target="_self"
                   className="text-sm tracking-wide text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {l.label}
@@ -68,6 +69,7 @@ export const Navbar = () => {
               <li key={l.href}>
                 <a
                   href={l.href}
+                  target="_self"
                   onClick={() => setOpen(false)}
                   className="text-base text-muted-foreground hover:text-foreground"
                 >
