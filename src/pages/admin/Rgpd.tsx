@@ -126,7 +126,7 @@ const RgpdContent = () => (
         <h2 className="font-semibold">Responsable de traitement</h2>
         <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1.5 text-sm">
           <div><dt className="inline text-muted-foreground">Raison sociale : </dt><dd className="inline font-medium">SUNAVIO SARL</dd></div>
-          <div><dt className="inline text-muted-foreground">Siège : </dt><dd className="inline font-medium">Villa 7 Résidence Safaa Ouidane, 40000 Marrakech, Maroc</dd></div>
+          <div><dt className="inline text-muted-foreground">Siège : </dt><dd className="inline font-medium">Zenith Business Center, Rue Mouslim, Lot Boukar, 3ème étage, Apt N°14, Bab Doukala, Marrakech-Guéliz, Maroc</dd></div>
           <div><dt className="inline text-muted-foreground">ICE : </dt><dd className="inline font-medium">003721552000008</dd></div>
           <div><dt className="inline text-muted-foreground">RC : </dt><dd className="inline font-medium">164901 Marrakech</dd></div>
           <div><dt className="inline text-muted-foreground">IF : </dt><dd className="inline font-medium">66967281</dd></div>
