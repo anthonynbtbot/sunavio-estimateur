@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 const links = [
   { label: "Accueil", href: "https://sunavio.com", external: true },
   { label: "Nos projets", href: "/#projets" },
-  { label: "Contact", href: "/#contact" },
+  { label: "Contact", href: "https://sunavio.com/contact", external: true },
 ];
 
 export const Navbar = () => {
