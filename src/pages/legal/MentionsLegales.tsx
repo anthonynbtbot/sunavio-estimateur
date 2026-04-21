@@ -1,4 +1,5 @@
 import { LegalLayout } from "@/components/legal/LegalLayout";
+import { SUNAVIO_IDENTITY } from "@/lib/sunavioIdentity";
 
 const UPDATED_AT = "20 avril 2026";
 
@@ -14,8 +15,7 @@ const MentionsLegales = () => (
       <br />
       Société à responsabilité limitée au capital de 100 000,00 MAD
       <br />
-      Siège social : Zenith Business Center, Rue Mouslim, Lot Boukar, 3ème
-      étage, Apt N°14, Bab Doukala, Marrakech-Guéliz, Maroc
+      Siège social : {SUNAVIO_IDENTITY.address.oneLine}
       <br />
       ICE : 003721552000008
       <br />
