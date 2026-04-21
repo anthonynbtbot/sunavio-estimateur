@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import logoSrc from "@/assets/sunavio-logo.png";
 
 interface LogoProps {
   className?: string;
@@ -8,8 +9,13 @@ export const Logo = ({ className = "" }: LogoProps) => (
   <Link
     to="/"
     aria-label="SUNAVIO — accueil"
-    className={`font-display text-2xl tracking-[0.25em] text-primary hover:text-primary-hover transition-colors ${className}`}
+    className={`inline-flex items-center transition-opacity hover:opacity-80 ${className}`}
   >
-    SUNAVIO
+    <img
+      src={logoSrc}
+      alt="SUNAVIO"
+      className="h-8 md:h-9 w-auto select-none"
+      draggable={false}
+    />
   </Link>
 );
