@@ -210,8 +210,8 @@ const PolitiqueConfidentialite = () => (
         (objet : « Exercice de mes droits personnels »)
       </li>
       <li>
-        Par courrier à : SUNAVIO SARL, Villa 7 Résidence Safaa Ouidane, 40000
-        Marrakech, Maroc
+        Par courrier à : SUNAVIO SARL, Zenith Business Center, Rue Mouslim,
+        Lot Boukar, 3ème étage, Apt N°14, Bab Doukala, Marrakech-Guéliz, Maroc
       </li>
     </ul>
     <p>
