@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import logoSrc from "@/assets/sunavio-logo.png";
 
 interface LogoProps {
@@ -6,8 +5,9 @@ interface LogoProps {
 }
 
 export const Logo = ({ className = "" }: LogoProps) => (
-  <Link
-    to="/"
+  <a
+    href="https://sunavio.com"
+    target="_self"
     aria-label="SUNAVIO — accueil"
     className={`inline-flex items-center transition-opacity hover:opacity-80 ${className}`}
   >
@@ -17,5 +17,5 @@ export const Logo = ({ className = "" }: LogoProps) => (
       className="h-8 md:h-9 w-auto select-none"
       draggable={false}
     />
-  </Link>
+  </a>
 );
