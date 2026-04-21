@@ -14,7 +14,8 @@ const MentionsLegales = () => (
       <br />
       Société à responsabilité limitée au capital de 100 000,00 MAD
       <br />
-      Siège social : Villa 7 Résidence Safaa Ouidane, 40000 Marrakech, Maroc
+      Siège social : Zenith Business Center, Rue Mouslim, Lot Boukar, 3ème
+      étage, Apt N°14, Bab Doukala, Marrakech-Guéliz, Maroc
       <br />
       ICE : 003721552000008
       <br />
