@@ -116,6 +116,10 @@ const RgpdContent = () => (
         <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
           Registre des traitements
         </h1>
+        <Badge variant="outline" className="gap-1.5">
+          <ShieldCheck className="h-3.5 w-3.5" />
+          Registre Article 30 conforme RGPD / CNDP
+        </Badge>
         <p className="text-muted-foreground">
           Article 30 RGPD — Loi 09-08 (Maroc) — LCEN (France). Document interne tenu par
           le responsable de traitement <strong>SUNAVIO SARL</strong>. À présenter sur demande à la
