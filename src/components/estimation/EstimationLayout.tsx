@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { EstimationFooter } from "./EstimationFooter";
 
 interface EstimationLayoutProps {
   children: ReactNode;
@@ -145,6 +146,8 @@ export const EstimationLayout = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EstimationFooter />
     </div>
   );
 };
