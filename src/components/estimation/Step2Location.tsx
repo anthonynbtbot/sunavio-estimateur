@@ -2,6 +2,7 @@ import { MapPin } from "lucide-react";
 import { useEstimationStore } from "@/stores/estimationStore";
 import { StepIntro } from "./EstimationLayout";
 import { AddressInput } from "./AddressInput";
+import { PrivacyNotice } from "./PrivacyNotice";
 
 const QUICK_CITIES = [
   { name: "Marrakech", lat: 31.6295, lng: -7.9811 },
@@ -26,6 +27,7 @@ export const Step2Location = () => {
 
   return (
     <>
+      <PrivacyNotice reason="L'adresse précise sert uniquement à calculer l'ensoleillement local et l'orientation optimale des panneaux." />
       <StepIntro
         title="Où se situe votre projet ?"
         subtitle="L'ensoleillement varie beaucoup selon votre position. Saisissez votre adresse, un Plus Code Google ou faites glisser l'épingle pour ajuster."

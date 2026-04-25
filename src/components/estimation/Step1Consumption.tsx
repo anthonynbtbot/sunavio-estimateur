@@ -170,6 +170,7 @@ export const Step1Consumption = () => {
 
   return (
     <>
+      <TrustBanner />
       <StepIntro
         title="Parlons de votre consommation."
         subtitle="Votre facture ONEE nous permet de dimensionner précisément votre installation. Deux options pour la renseigner — choisissez la plus simple pour vous."

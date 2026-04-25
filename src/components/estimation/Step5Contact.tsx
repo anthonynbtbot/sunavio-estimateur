@@ -10,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PrivacyNotice } from "./PrivacyNotice";
+import { ShieldCheck } from "lucide-react";
 
 interface Step5Props {
   acceptTerms: boolean;
@@ -32,6 +34,7 @@ export const Step5Contact = ({
 
   return (
     <>
+      <PrivacyNotice reason="Vos coordonnées nous permettent de vous transmettre l'étude générée et de planifier la visite technique gratuite." />
       <StepIntro
         title="Dernière étape : où vous envoyer votre étude."
         subtitle="Votre étude détaillée vous sera envoyée par WhatsApp et email. Un ingénieur SUNAVIO vous contactera ensuite pour une visite technique gratuite, sans engagement."
@@ -152,6 +155,32 @@ export const Step5Contact = ({
         >
           En savoir plus sur l'utilisation de vos données
         </button>
+
+        <div className="mt-2 rounded-md border border-primary/30 bg-card/60 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <ShieldCheck className="size-4 text-primary" aria-hidden />
+            <h4 className="font-display text-sm text-foreground">
+              Ce que nous faisons avec vos données
+            </h4>
+          </div>
+          <ul className="text-xs text-muted-foreground leading-relaxed space-y-1.5 list-disc list-inside">
+            <li>Génération de votre pré-étude solaire personnalisée.</li>
+            <li>Contact commercial uniquement avec votre accord explicite.</li>
+            <li>Stockage sécurisé en base chiffrée (HTTPS, tunnel Cloudflare).</li>
+            <li>Conservation 3 ans maximum.</li>
+            <li>
+              Droit d'accès, rectification et suppression à tout moment via{" "}
+              <Link
+                to="/me/delete"
+                target="_blank"
+                className="text-primary underline hover:text-primary-hover"
+              >
+                /me/delete
+              </Link>
+              .
+            </li>
+          </ul>
+        </div>
       </div>
 
       <Dialog open={rgpdOpen} onOpenChange={setRgpdOpen}>

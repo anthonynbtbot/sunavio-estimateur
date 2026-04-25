@@ -4,6 +4,7 @@ import { useEstimationStore } from "@/stores/estimationStore";
 import { StepIntro } from "./EstimationLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { PrivacyNotice } from "./PrivacyNotice";
 
 const MAX_ROOF = 5;
 
@@ -75,6 +76,7 @@ export const Step4Photos = () => {
 
   return (
     <>
+      <PrivacyNotice reason="Les photos servent uniquement à analyser votre toiture (orientation, surface, obstacles)." />
       <StepIntro
         title="Quelques photos pour affiner notre étude."
         subtitle="2 à 3 photos de votre toit prises avec votre téléphone nous suffisent. Elles nous aident à anticiper l'orientation, les obstacles et la meilleure disposition des panneaux."
