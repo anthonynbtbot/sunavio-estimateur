@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/formatNumber";
 import { DataValue } from "@/components/ui/DataValue";
 import { useErrorHighlight } from "@/hooks/useErrorHighlight";
+import { TrustBanner } from "./TrustBanner";
 
 export const Step1Consumption = () => {
   const { consumption, setConsumption } = useEstimationStore();
